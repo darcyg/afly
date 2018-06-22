@@ -40,10 +40,16 @@
 
 #include "kv.h"
 
+#if 0
 static char DEMO_CASE_PRODUCT_KEY[PRODUCT_KEY_MAXLEN] = {"a139alxxo0W"};
 static char DEMO_CASE_DEVICE_NAME[DEVICE_NAME_MAXLEN] = {"IoTGatewayTest"};
 static char DEMO_CASE_DEVICE_SECRET[DEVICE_SECRET_MAXLEN] = {"G43smopQ3mJ1Mo8MuzCyONkjnIbybNDR"};
-static char DEMO_CASE_PRODUCT_SECRET[PRODUCT_SECRET_MAXLEN] = {0};
+#else
+static char DEMO_CASE_PRODUCT_KEY[PRODUCT_KEY_MAXLEN] = {"a16jEJYhBrU"};
+static char DEMO_CASE_DEVICE_NAME[DEVICE_NAME_MAXLEN] = {"dyxTestGateway"};
+static char DEMO_CASE_DEVICE_SECRET[DEVICE_SECRET_MAXLEN] = {"2BQQ2LHBbV8TbVRJrhwtVMpc8JsXD2Dv"};
+#endif
+static char DEMO_CASE_PRODUCT_SECRET[PRODUCT_SECRET_MAXLEN] = {"a1q89CnOyZM"};
 
 void *HAL_MutexCreate(void)
 {
