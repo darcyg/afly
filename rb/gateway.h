@@ -12,6 +12,10 @@
 #ifndef __ALI_GATEWAY_H__
 #define __ALI_GATEWAY_H__
 
+#define PROCESS_NAME "linkkit-gateway"
+#define RUN_PID_DIR "/var/run/linkkit-gateway.pid"
+
+
 #define DPRINT(...)                                      \
     do {                                                     \
         printf("\033[1;31;40m%s.%d: ", __func__, __LINE__);  \
