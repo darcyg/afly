@@ -15,6 +15,12 @@
 #define PROCESS_NAME "linkkit-gateway"
 #define RUN_PID_DIR "/var/run/linkkit-gateway.pid"
 
+#define FAKE_ZIGBEE_BAND 25
+#define FAKE_NETWORK_KEY "21B9F385F114B1C4AE07D5753B95355D"
+
+#define LINKKIT_MAX_MSG_SIZE (20 * 1024)
+#define LINKKIT_MAX_MSG_QUE_SIZE (8)
+#define LINKKIT_LOG_LEVEL   (5)
 
 #define DPRINT(...)                                      \
     do {                                                     \

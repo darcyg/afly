@@ -34,12 +34,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <string.h>
 
 
 #include "iot_import.h"
 
 #include "kv.h"
 
+#if 0
 #if 0
 static char DEMO_CASE_PRODUCT_KEY[PRODUCT_KEY_MAXLEN] = {"a139alxxo0W"};
 static char DEMO_CASE_DEVICE_NAME[DEVICE_NAME_MAXLEN] = {"IoTGatewayTest"};
@@ -50,6 +52,98 @@ static char DEMO_CASE_DEVICE_NAME[DEVICE_NAME_MAXLEN] = {"dyxTestGateway"};
 static char DEMO_CASE_DEVICE_SECRET[DEVICE_SECRET_MAXLEN] = {"2BQQ2LHBbV8TbVRJrhwtVMpc8JsXD2Dv"};
 #endif
 static char DEMO_CASE_PRODUCT_SECRET[PRODUCT_SECRET_MAXLEN] = {"a1q89CnOyZM"};
+#endif
+
+#define LINKKIT_HAL_CONFIG_DIR "/etc/config/linkkit.hal"
+
+#define LINKKIT_PRODUCT_KEY "product_key"
+#define LINKKIT_DEVICE_NAME "device_name"
+#define LINKKIT_DEVICE_SECRET "device_secret"
+#define LINKKIT_PRODUCT_SECRET "product_secret"
+#define LINKKIT_PRODUCT_ID  "product_id"
+
+#define LINKKIT_PRODUCT_KEY_DEFAULT "a16jEJYhBrU"
+#define LINKKIT_DEVICE_NAME_DEFAULT "dyxTestGateway"
+#define LINKKIT_DEVICE_SECRET_DEFAULT "2BQQ2LHBbV8TbVRJrhwtVMpc8JsXD2Dv"
+#define LINKKIT_PRODUCT_SECRET_DEFAULT "a1q89CnOyZM"
+#define LINKKIT_PRODUCT_ID_DEFAULT "238709"
+
+static inline void getLinkkitHalConf(char *out, char *key, char *def)
+{
+    char configStr[1024];
+    long length;
+    char *pStr = NULL;
+    char *pStr2 = NULL;
+    FILE * fp = fopen(LINKKIT_HAL_CONFIG_DIR, "r");
+
+    if (fp == NULL)
+    {
+        printf("fopen LINKKIT_HAL_CONFIG_DIR failed.\n");
+        strcpy(key, def);
+        return ;
+    }
+    
+    fseek(fp, 0L, SEEK_END);
+    length = ftell(fp);
+    fseek(fp, 0L, SEEK_SET);
+
+    memset(configStr, 0, sizeof(configStr));
+    fread(configStr, length, 1, fp);
+
+    printf("[%s]:configStr[%s]length[%d].\n", __FUNCTION__, configStr, length);
+    pStr = strstr(configStr, key);
+    if (pStr == NULL)
+    {
+        printf("strstr key %s failed.\n", key);
+        strcpy(key, def);
+        return ;
+    }
+
+    pStr += strlen(key);
+    pStr += 1;/*skip symbol ':' */
+
+    pStr2 = strchr(pStr, ';');
+    if (pStr2 == NULL)
+    {
+        pStr2 = pStr + strlen(def);
+    }
+
+    length = pStr2 - pStr;
+    
+    strncpy(out, pStr, length);
+    printf("[%s]:pStr[%s]length[%d]out[%s].\n", __FUNCTION__, pStr, length, out);
+
+    fclose(fp);
+}
+
+
+static void RB_getProductKey(char *productKey)
+{
+    return getLinkkitHalConf(productKey, LINKKIT_PRODUCT_KEY, LINKKIT_PRODUCT_KEY_DEFAULT);
+}
+
+static void RB_getDeviceName(char *devName)
+{
+    return getLinkkitHalConf(devName, LINKKIT_DEVICE_NAME, LINKKIT_DEVICE_NAME_DEFAULT);
+}
+
+static void RB_getDeviceSecret(char *devSecret)
+{
+    return getLinkkitHalConf(devSecret, LINKKIT_DEVICE_SECRET, LINKKIT_DEVICE_SECRET_DEFAULT);
+}
+
+static void RB_getProductSecret(char *productSecret)
+{
+    return getLinkkitHalConf(productSecret, LINKKIT_PRODUCT_SECRET, LINKKIT_PRODUCT_SECRET_DEFAULT);
+}
+ 
+#if 0
+static void RB_getProductId(char *productId)
+{
+    return getLinkkitHalConf(productId, LINKKIT_PRODUCT_ID, LINKKIT_PRODUCT_ID_DEFAULT);
+}
+
+#endif
 
 void *HAL_MutexCreate(void)
 {
@@ -188,22 +282,31 @@ char *HAL_GetChipID(_OU_ char cid_str[HAL_CID_LEN])
 
 int HAL_GetDeviceID(_OU_ char device_id[DEVICE_ID_MAXLEN])
 {
+    char product_key[PRODUCT_KEY_MAXLEN];
+    char device_name[DEVICE_NAME_MAXLEN];
+    
     memset(device_id, 0x0, DEVICE_ID_MAXLEN);
-    HAL_Snprintf(device_id, DEVICE_ID_MAXLEN, "%s.%s", DEMO_CASE_PRODUCT_KEY, DEMO_CASE_DEVICE_NAME);
+    memset(product_key, 0x0, PRODUCT_KEY_MAXLEN);
+    memset(device_name, 0x0, DEVICE_NAME_MAXLEN);
+    RB_getProductKey(product_key);
+    RB_getDeviceName(device_name);
+    HAL_Snprintf(device_id, DEVICE_ID_MAXLEN, "%s.%s", product_key, device_name);
     return strlen(device_id);
 }
 
 int HAL_GetDeviceName(_OU_ char device_name[DEVICE_NAME_MAXLEN])
 {
     memset(device_name, 0x0, DEVICE_NAME_MAXLEN);
-    HAL_Snprintf(device_name, DEVICE_NAME_MAXLEN, "%s", DEMO_CASE_DEVICE_NAME);
+    //HAL_Snprintf(device_name, DEVICE_NAME_MAXLEN, "%s", DEMO_CASE_DEVICE_NAME);
+    RB_getDeviceName(device_name);
     return strlen(device_name);
 }
 
 int HAL_GetDeviceSecret(_OU_ char device_secret[DEVICE_SECRET_MAXLEN])
 {
     memset(device_secret, 0x0, DEVICE_SECRET_MAXLEN);
-    HAL_Snprintf(device_secret, DEVICE_SECRET_MAXLEN, "%s", DEMO_CASE_DEVICE_SECRET);
+    //HAL_Snprintf(device_secret, DEVICE_SECRET_MAXLEN, "%s", DEMO_CASE_DEVICE_SECRET);
+    RB_getDeviceSecret(device_secret);
     return strlen(device_secret);
 }
 
@@ -218,14 +321,16 @@ int HAL_GetFirmwareVesion(_OU_ char version[FIRMWARE_VERSION_MAXLEN])
 int HAL_GetProductKey(_OU_ char product_key[PRODUCT_KEY_MAXLEN])
 {
     memset(product_key, 0x0, PRODUCT_KEY_MAXLEN);
-    HAL_Snprintf(product_key, PRODUCT_KEY_MAXLEN, "%s", DEMO_CASE_PRODUCT_KEY);
+    //HAL_Snprintf(product_key, PRODUCT_KEY_MAXLEN, "%s", DEMO_CASE_PRODUCT_KEY);
+    RB_getProductKey(product_key);
     return strlen(product_key);
 }
 
 int HAL_GetProductSecret(_OU_ char product_secret[PRODUCT_SECRET_MAXLEN])
 {
     memset(product_secret, 0, PRODUCT_SECRET_MAXLEN);
-    HAL_Snprintf(product_secret, PRODUCT_SECRET_MAXLEN, "%s", DEMO_CASE_PRODUCT_SECRET);
+    //HAL_Snprintf(product_secret, PRODUCT_SECRET_MAXLEN, "%s", DEMO_CASE_PRODUCT_SECRET);
+    RB_getProductSecret(product_secret);
     return strlen(product_secret);
 }
 

@@ -1,8 +1,6 @@
-#ifndef __LIGHT_H__
-#define __LIGHT_H__
+#ifndef __NXP_LOCK_H__
+#define __NXP_LOCK_H__
 
-int light_init(void);
-int light_exit(void);
 
 int lock_init(void);
 int lock_exit(void);

@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <time.h>
 
+#include <dusun/dusun.h>
 
 #include "nxp.h"
 #include "linkkit.h"
@@ -22,6 +23,7 @@
 
 #include "cJSON.h"
 #include "gateway.h"
+
 
 
 /*****************************************************************************
@@ -301,6 +303,33 @@ static void ota_callback(int event, const char *version, void *ctx)
     linkkit_gateway_ota_update(512);
 }
 
+static inline void parseGatewayMac(char *mac)
+{
+    int i, j;
+    char gwMac[32];
+
+    memset(gwMac, 0, sizeof(gwMac));
+    get_mac_address(gwMac);
+    
+    for (i = 0; gwMac[i] != '\0'; i++)
+    {
+        if (gwMac[i] != ':')
+        {
+            continue;
+        }
+        for (j = i; gwMac[j] != '\0'; j++)
+        {
+            gwMac[j] = gwMac[j + 1];
+        }
+        
+        i--;
+    }
+
+    sprintf(mac, "0000%s", gwMac);
+
+    DPRINT("gwMac[%s]mac[%s]\n", gwMac, mac);
+
+}
 /*****************************************************************************
  * Function:             run_ali_linkkit
  * Description:          TODO
@@ -310,20 +339,24 @@ static void ota_callback(int event, const char *version, void *ctx)
  *   OK:                    Successful
  *   ERROR:                 Failed
  ******************************************************************************/
-int run_ali_linkkit(void)
+int run_ali_linkkit(int channel)
 {
+    char gwMac[32];
     gateway_t gateway;
     
     memset(&gateway, 0, sizeof(gateway_t));
 
     /* fill fake zigbee network info */
-    gateway.ZB_Band = 25;
-    gateway.ZB_Channel = 16;
+    gateway.ZB_Band = FAKE_ZIGBEE_BAND;
+    gateway.ZB_Channel = channel;
 
-    strcpy(gateway.ZB_PAN_ID, "8215");
-    strcpy(gateway.EXT_PAN_ID, "000D6F000ED34E34");
-    strcpy(gateway.ZB_CO_MAC, "000D6F000ED34E34");
-    strcpy(gateway.NETWORK_KEY, "21B9F385F114B1C4AE07D5753B95355D");
+    memset(gwMac, 0, sizeof(gwMac));
+    parseGatewayMac(gwMac);
+
+    strcpy(gateway.ZB_PAN_ID, &gwMac[12]);
+    strcpy(gateway.EXT_PAN_ID, gwMac);
+    strcpy(gateway.ZB_CO_MAC, gwMac);
+    strcpy(gateway.NETWORK_KEY, FAKE_NETWORK_KEY);
 
     linkkit_params_t *initParams = linkkit_gateway_get_default_params();
     if (!initParams)
@@ -332,13 +365,13 @@ int run_ali_linkkit(void)
         return -1;
     }
 
-    int maxMsgSize = 20 * 1024;
+    int maxMsgSize = LINKKIT_MAX_MSG_SIZE;
     linkkit_gateway_set_option(initParams, LINKKIT_OPT_MAX_MSG_SIZE, &maxMsgSize, sizeof(int));
 
-    int maxMsgQueueSize = 8;
+    int maxMsgQueueSize = LINKKIT_MAX_MSG_QUE_SIZE;
     linkkit_gateway_set_option(initParams, LINKKIT_OPT_MAX_MSG_QUEUE_SIZE, &maxMsgQueueSize, sizeof(int));
 
-    int loglevel = 5;
+    int loglevel = LINKKIT_LOG_LEVEL;
     linkkit_gateway_set_option(initParams, LINKKIT_OPT_LOG_LEVEL, &loglevel, sizeof(int));
 
     linkkit_gateway_set_event_callback(initParams, event_handler, &gateway);
@@ -364,7 +397,9 @@ int run_ali_linkkit(void)
 
     linkkit_gateway_ota_init(ota_callback, NULL);
 
-    light_init();
+    //light_init();
+
+    lock_init();
 
 #if 0
     while (1)

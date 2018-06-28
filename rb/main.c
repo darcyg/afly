@@ -21,7 +21,7 @@
 
 int linkkitParseJson(json *packet);
 void linkkit_cmd_loop_start(void);
-int run_ali_linkkit(void);
+int run_ali_linkkit(int channel);
 
 
 /*****************************************************************************
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
     proto_gw_set_factory_license("dusun", "dusun");
     //timer_init();
 
-    run_ali_linkkit();
+    run_ali_linkkit(25);
     
     proto_default_ubus_loop();
 
