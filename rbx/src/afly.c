@@ -94,7 +94,9 @@ static int subdev_set_property(char *in, void *ctx) {
 static int subdev_call_service(char *identifier, char *in, char *out, int out_len, void *ctx) {
     log_info("in : %s", in);
 
-		stSubDevCfg_t *sdc = (stSubDevCfg_t*)sdc;
+		stSubDevCfg_t *sdc = (stSubDevCfg_t*)ctx;
+
+		log_info("productKey:%s, deviceName:%s, deviceSecret:%s", sdc->productKey, sdc->deviceName, sdc->deviceSecret);
 
 		if (strcmp(identifier, "set") == 0 || strcmp(identifier, "get") == 0) {
 			log_warn("get/set will through get/set interface.");
