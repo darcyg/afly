@@ -5,6 +5,7 @@
 
 # Author:   
 	dyx/tech32@hzdusun.com  
+	au/ghaucience@gmail.com
 
 # Use:   
 	1.  
@@ -14,10 +15,15 @@
 	...  
 
 # Developing:  
-	...  
+	1. product_sub & product module  
+	2. add product & del product link debug  
+	3. device reg->create->login->unlogin->destroy->unreg  
+	4. dev sevice framework  
+	5. add pass/del pass/storage pass
+	6. report  
 
 # Version:  
-	V1.0.0_ali_feiyan_beta0:  
+	V1.0.0_afly_beta0:  
 		- Functions:  
 			*  
 		- Changes:  
@@ -27,4 +33,10 @@
 		- Todo:  
 			*  
 
-
+# Lays 
+	
+					-AFly-
+	---------------------------------------
+	-Z3- -nxp-   -storage-
+	-----------
+	 -uproto-
