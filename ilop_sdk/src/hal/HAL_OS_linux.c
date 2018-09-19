@@ -54,6 +54,7 @@ static char DEMO_CASE_DEVICE_SECRET[DEVICE_SECRET_MAXLEN] = {"2BQQ2LHBbV8TbVRJrh
 static char DEMO_CASE_PRODUCT_SECRET[PRODUCT_SECRET_MAXLEN] = {"a1q89CnOyZM"};
 #endif
 
+#if 0
 #define LINKKIT_HAL_CONFIG_DIR "/etc/config/linkkit.hal"
 
 #define LINKKIT_PRODUCT_KEY "product_key"
@@ -67,6 +68,27 @@ static char DEMO_CASE_PRODUCT_SECRET[PRODUCT_SECRET_MAXLEN] = {"a1q89CnOyZM"};
 #define LINKKIT_DEVICE_SECRET_DEFAULT "2BQQ2LHBbV8TbVRJrhwtVMpc8JsXD2Dv"
 #define LINKKIT_PRODUCT_SECRET_DEFAULT "a1q89CnOyZM"
 #define LINKKIT_PRODUCT_ID_DEFAULT "238709"
+#else
+
+extern char *	product_get_hal_config_dir();
+extern char *	product_get_product_key_default();
+extern char *	product_get_device_name_default();
+extern char *	product_get_device_secret_default();
+extern char *	product_get_product_secret_default();
+extern char *	product_get_id_default();
+
+#define LINKKIT_HAL_CONFIG_DIR					product_get_hal_config_dir()
+#define LINKKIT_PRODUCT_KEY							"product_key"
+#define LINKKIT_DEVICE_NAME							"device_name"
+#define LINKKIT_DEVICE_SECRET						"device_secret"
+#define LINKKIT_PRODUCT_SECRET					"product_secret"
+#define LINKKIT_PRODUCT_ID							"product_id"
+#define LINKKIT_PRODUCT_KEY_DEFAULT			product_get_product_key_default()
+#define LINKKIT_DEVICE_NAME_DEFAULT			product_get_device_name_default()
+#define LINKKIT_DEVICE_SECRET_DEFAULT		product_get_device_secret_default()
+#define LINKKIT_PRODUCT_SECRET_DEFAULT	product_get_product_secret_default()
+#define LINKKIT_PRODUCT_ID_DEFAULT			product_get_id_default()
+#endif
 
 static inline void getLinkkitHalConf(char *out, char *key, char *def)
 {
@@ -76,8 +98,7 @@ static inline void getLinkkitHalConf(char *out, char *key, char *def)
     char *pStr2 = NULL;
     FILE * fp = fopen(LINKKIT_HAL_CONFIG_DIR, "r");
 
-    if (fp == NULL)
-    {
+    if (fp == NULL) {
         printf("fopen LINKKIT_HAL_CONFIG_DIR failed.\n");
         strcpy(key, def);
         return ;
@@ -90,10 +111,9 @@ static inline void getLinkkitHalConf(char *out, char *key, char *def)
     memset(configStr, 0, sizeof(configStr));
     fread(configStr, length, 1, fp);
 
-    printf("[%s]:configStr[%s]length[%d].\n", __FUNCTION__, configStr, length);
+    //printf("[%s]: configStr:[%s], length:[%d].\n", __FUNCTION__, configStr, (int)length);
     pStr = strstr(configStr, key);
-    if (pStr == NULL)
-    {
+    if (pStr == NULL) {
         printf("strstr key %s failed.\n", key);
         strcpy(key, def);
         return ;
@@ -103,15 +123,15 @@ static inline void getLinkkitHalConf(char *out, char *key, char *def)
     pStr += 1;/*skip symbol ':' */
 
     pStr2 = strchr(pStr, ';');
-    if (pStr2 == NULL)
-    {
+    if (pStr2 == NULL) {
         pStr2 = pStr + strlen(def);
     }
 
     length = pStr2 - pStr;
     
     strncpy(out, pStr, length);
-    printf("[%s]:pStr[%s]length[%d]out[%s].\n", __FUNCTION__, pStr, length, out);
+
+    //printf("[%s]: pStr:[%s], length:[%d], out:[%s].\n", __FUNCTION__, pStr, (int)length, out);
 
     fclose(fp);
 }
