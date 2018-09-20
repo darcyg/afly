@@ -15,11 +15,11 @@
 	...  
 
 # Developing:  
-	1. product_sub & product module  
-	2. add product & del product link debug  
-	3. device reg->create->login->unlogin->destroy->unreg  
+	1. product_sub & product module   [ok]  
+	2. add product & del product link debug   
+	3. device reg->create->login->unlogin->destroy->unreg 
 	4. dev sevice framework  
-	5. add pass/del pass/storage pass
+	5. add pass/del pass/storage pass  
 	6. report  
 
 # Version:  
@@ -40,3 +40,4 @@
 	-Z3- -nxp-   -storage-
 	-----------
 	 -uproto-
+

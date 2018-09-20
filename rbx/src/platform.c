@@ -77,7 +77,7 @@ static int get_mac_addr(char *mac, size_t size) {
 int platform_get_mac_addr(struct ether_addr *addr)
 {
 	char mac[32];
-	if (get_mac_addr(mac, sizeof(mac) != 0)) {
+	if (get_mac_addr(mac, sizeof(mac))!= 0) {
 		return -1;
 	}
 
@@ -101,7 +101,7 @@ int platform_get_mac_addr(struct ether_addr *addr)
 int platform_get_hw_id(char *buf, size_t size)
 {
 	char mac[32];
-	if (get_mac_addr(mac, sizeof(mac) != 0)) {
+	if (get_mac_addr(mac, sizeof(mac)) != 0) {
 		return -1;
 	}
 	int len = strlen(mac);

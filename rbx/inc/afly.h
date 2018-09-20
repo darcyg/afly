@@ -25,10 +25,20 @@ typedef struct stAFlyEnv {
 	struct timer_head *th;
 	struct timer step_timer;
 
+	struct timer sync_list_timer;
+
 	stLockQueue_t msgq;
 
 	stGateway_t gw;
 }stAFlyEnv_t;
+
+
+typedef struct stAflyService {
+	char *app;
+	char *model;
+	char *name;
+	int  (*func)(void *arg, char *in, char *out, int out_len, void *ctx);
+} stAflyService_t;
 
 
 int		afly_init(void *_th, void *_fet, int loglvl);
@@ -36,6 +46,7 @@ int		afly_push_msg(int eid, void *param, int len);
 
 int		afly_step();
 void	afly_handler_run(struct timer *timer);
+void	afly_handler_sync_list_run(struct timer *timer);
 
 void	afly_pipe_in(void *arg, int fd);
 

@@ -14,7 +14,12 @@
 
 #define UPROTO_EVENT_ID_LISTEN "DS.EMBER.RES&RPT"
 #define UPROTO_EVENT_ID_REPORT "DS.EMBER.COMMAND"
-#define UPROTO_ME							 "CLOUD"
+
+
+#define UPROTO_EVENT_ID_LISTEN_NXP "DS.NXP"
+#define UPROTO_EVENT_ID_REPORT_NXP "DS.NXP"
+//#define UPROTO_ME							 "CLOUD"
+#define UPROTO_ME							 "AFLY"
 
 enum {
 	UE_SEND_MSG = 0x00,

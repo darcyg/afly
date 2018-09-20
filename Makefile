@@ -59,14 +59,15 @@ objs 		 		:= $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(srcs)))
 
 
 aflysrcs		:= $(ROOTDIR)/main.c
+aflysrcs		+= $(ROOTDIR)/rbx/src/cmd.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/afly.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/afly_profile.c
-aflysrcs		+= $(ROOTDIR)/rbx/src/cmd.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/product.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/product_sub.c
-aflysrcs		+= $(ROOTDIR)/rbx/src/uproto.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/platform.c
+aflysrcs		+= $(ROOTDIR)/rbx/src/nxpx.c
 #aflysrcs		+= $(ROOTDIR)/rbx/src/zigbee.c
+aflysrcs		+= $(ROOTDIR)/rbx/src/uproto.c
 
 aflysrcs		+= $(ROOTDIR)/ilop_sdk/src/hal/base64.c  
 aflysrcs		+= $(ROOTDIR)/ilop_sdk/src/hal/HAL_Crypt_Linux.c  

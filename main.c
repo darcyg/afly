@@ -196,6 +196,8 @@ static void	run_main() {
 
 
 	afly_init(&th, &fet, loglvl);	
+
+	uproto_init(&th, &fet);
 	
 	if (use_cmd) {
 		cmd_init(&th, &fet);

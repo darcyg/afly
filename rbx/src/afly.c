@@ -19,11 +19,29 @@
 #include "jansson.h"
 #include "json_parser.h"
 
+#include "nxpx.h"
+
 
 void _afly_init(int loglvl);
 void _afly_end();
 
 static stAFlyEnv_t env = {0};
+
+
+static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
+static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
+
+static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx);
+static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
+static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx);
+static stAflyService_t svrs[] = {
+	{ "GW",		"1000", "AddSubDev",	gateway_add_subdev  },
+	{ "GW",		"1000", "DelSubDev",	gateway_del_subdev  },
+	
+	{ "NXP",	"1203", "AddKey",			subdev_add_key },
+	{ "NXP",	"1203", "DeleteKey",	subdev_del_key },
+	{ "NXP",	"1203", "GetKeyList",	subdev_get_key_list },
+};
 
 //////////////////////////////////////////////////////////////////////////
 int		afly_init(void *_th, void *_fet, int loglvl) {
@@ -31,6 +49,7 @@ int		afly_init(void *_th, void *_fet, int loglvl) {
 	env.fet = _fet;
 	
 	timer_init(&env.step_timer, afly_handler_run);
+	timer_init(&env.sync_list_timer, afly_handler_sync_list_run);
 
 	lockqueue_init(&env.msgq);
 
@@ -39,6 +58,8 @@ int		afly_init(void *_th, void *_fet, int loglvl) {
 	afly_reg((unsigned char*)"\x01\x02\x03\x04\x05\x06\x07\x08", 1102, (char *)"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f", "sign", 0);
 	afly_upt_online((unsigned char *)"\x01\x02\x03\x04\x05\x06\x07\x08", 1);
 
+	
+	timer_set(env.th, &env.sync_list_timer, 2000);
 	return 0;
 }
 int		afly_push_msg(int eid, void *param, int len) {
@@ -69,31 +90,89 @@ void	afly_handler_run(struct timer *timer) {
 	}
 }
 
+static int afly_connect_change_on = 0;
+void	afly_handler_sync_list_run(struct timer *timer) {
+	timer_cancel(env.th, &env.sync_list_timer);
+	static int last = 0;
+
+	if (afly_connect_change_on == 1 || time(NULL) - last > 60 * 15) {
+		log_info("Sync Npx & xxxx List ...\r\n");
+		stGateway_t *gw = product_get_gw();
+		if (gw->connected) {
+			nxp_get_list();
+		}
+		afly_connect_change_on = 0;
+
+		last = time(NULL);
+	}
+}
+
 int		afly_handler_event(stEvent_t *event) {
 	log_info("[%d] afly module now not support event handler, only free the event!!!", __LINE__);
 	return 0;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////
+static stAflyService_t *afly_search_service(char *app, char *model, char *identifier) {
+	int i = 0;
+	int cnt = sizeof(svrs)/sizeof(svrs[0]);	
+	for (i = 0; i < cnt; i++) {
+		stAflyService_t *svr = &svrs[i];
+		if (strcmp(app, svr->app) != 0) {
+			continue;
+		}
+		if (strcmp(model, svr->model) != 0) {
+			continue;
+		}
+		if (strcmp(identifier, svr->name) != 0) {
+			continue;
+		}
+		return svr;
+	}
+
+	return NULL;
+}
 
 
 ///////////////////////////// AFly Lock Callback //////////////////////////////////////////////
+static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
+	log_info("in : %s", in);
+	return 0;
+}
+static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx) {
+	log_info("in : %s", in);
+	return 0;
+}
+static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) {
+	log_info("in : %s", in);
+	return 0;
+}
+
+
 static int subdev_get_property(char *in, char *out, int out_len, void *ctx) {
     log_info("in : %s", in);
-		stSubDevCfg_t *sdc = (stSubDevCfg_t*)sdc;
 
-    return 0;
+		log_warn("now not support !");
+
+		//stSubDev_t *sdc = (stSubDev_t*)sdc;
+
+    return -1;
 }
 
 static int subdev_set_property(char *in, void *ctx) {
 
     log_info("in : %s", in);
-		stSubDevCfg_t *sdc = (stSubDevCfg_t*)sdc;
 
-    return 0;
+		log_warn("now not support !");
+
+		//stSubDev_t *sdc = (stSubDev_t*)sdc;
+
+    return -1;
 }
 
 static int subdev_call_service(char *identifier, char *in, char *out, int out_len, void *ctx) {
     log_info("in : %s", in);
 
+#if 0
 		stSubDevCfg_t *sdc = (stSubDevCfg_t*)ctx;
 
 		log_info("productKey:%s, deviceName:%s, deviceSecret:%s", sdc->productKey, sdc->deviceName, sdc->deviceSecret);
@@ -160,13 +239,23 @@ static int subdev_call_service(char *identifier, char *in, char *out, int out_le
 			log_info("Get Key List, LockType : %d ...", LockType);	
 			/**> Get Key List */
 		}
+#endif
 
 #if 0
     lock_t *lock = ctx;
     linkkit_gateway_post_property_json_sync(lock->devid, "{\"SetTimer\": \"hello, world!\"}", 5000);
 #endif
 
-    return 0;
+		stSubDev_t *sd = (stSubDev_t*)ctx;
+		sd = sd;
+
+		stAflyService_t *svr = afly_search_service("GW", "1000", identifier);
+		if (svr == NULL) {
+			log_warn("not support service : %s", identifier);
+			return -1;
+		}
+
+		return svr->func(svr, in, out, out_len, ctx);
 }
 ssize_t subdev_down_rawdata(const void *in, int in_len, void *out, int out_len, void *ctx) {
 	log_debug_hex("in : ", in, in_len);
@@ -199,6 +288,98 @@ static void ota_callback(int event, const char *version, void *ctx) {
 }
 
 ///////////////////////////// AFly Callback //////////////////////////////////////////////////////////
+static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
+    log_info("in: %s", in);
+		
+		//stGateway_t *gw = (stGateway_t*)ctx;
+
+		json_error_t error;
+		json_t *jin = json_loads(in, 0, &error);
+		if (jin == NULL) {
+			log_warn("error json format!!!");
+			return -1;
+		}
+
+		json_t *jlist = json_object_get(jin, "SubDevList");
+		if (jlist == NULL) {
+			json_decref(jin);
+			return -2;
+		}
+
+		if (json_is_array(jlist)) {
+			json_decref(jin);
+			return -3;
+		}
+
+		size_t  i		= 0;
+		json_t *jv	= NULL;
+		json_array_foreach(jlist, i, jv) {
+			const char *name = json_get_string(jv, "deviceName");
+			const char *key  = json_get_string(jv, "deviceSecret");
+			const char *sec  = json_get_string(jv, "productKey");
+			if (name == NULL || key == NULL || sec == NULL) {
+				continue;
+			}
+			
+			int ret = product_sub_add(name, key, sec);
+			if (ret != 0) {
+				log_warn("Add Sub Dev name(%s), key(%s), sec(%s) failed, ret:%d", name, key, sec, ret);
+				continue;
+			} 
+			
+			log_warn("Add Sub Dev name(%s), key(%s), sec(%s) ok", name, key, sec);
+		}
+
+		json_decref(jin);
+		
+		return 0;
+}
+static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
+    log_info("in: %s", in);
+
+		//stGateway_t *gw = (stGateway_t*)ctx;
+
+		json_error_t error;
+		json_t *jin = json_loads(in, 0, &error);
+		if (jin == NULL) {
+			log_warn("error json format!!!");
+			return -1;
+		}
+
+		json_t *jlist = json_object_get(jin, "SubDevList");
+		if (jlist == NULL) {
+			json_decref(jin);
+			return -2;
+		}
+
+		if (json_is_array(jlist)) {
+			json_decref(jin);
+			return -3;
+		}
+
+		size_t  i		= 0;
+		json_t *jv	= NULL;
+		json_array_foreach(jlist, i, jv) {
+			const char *name = json_get_string(jv, "deviceName");
+			const char *key  = json_get_string(jv, "deviceSecret");
+			const char *sec  = json_get_string(jv, "productKey");
+			if (name == NULL || key == NULL || sec == NULL) {
+				continue;
+			}
+			
+			int ret = product_sub_del(name);
+			if (ret != 0) {
+				log_warn("Del Sub Dev name(%s) failed, ret:%d", name, ret);
+				continue;
+			} 
+			
+			log_warn("Del Sub Dev name(%s) ok", name);
+		}
+
+		json_decref(jin);
+
+		return -1;
+}
 static int gateway_get_property(char *in, char *out, int out_len, void *ctx) {
     log_info("in: %s", in);
 
@@ -251,8 +432,22 @@ static int gateway_get_property(char *in, char *out, int out_len, void *ctx) {
 				json_object_set_new(jret, "EXT_PAN_ID", json_string(gw->EXT_PAN_ID));
 			} else if (strcmp(sv, "NETWORK_KEY") == 0) {
 				json_object_set_new(jret, "NETWORK_KEY", json_string(gw->NETWORK_KEY));
-			} else {
-				;
+			} else if (strcmp(sv, "SubDevList") == 0) {
+				int num = product_sub_get_num();
+				int i = 0;
+				json_t *ja = json_array();
+				for (i = 0; i < num; i++) {
+					stSubDev_t *sd = product_sub_get_i(i);
+					if (sd == NULL) {
+						continue;
+					}
+					json_t *ji = json_object();
+					json_object_set_new(ji, "deviceName", json_string(sd->deviceName));
+					json_object_set_new(ji, "deviceSecret", json_string(sd->deviceSecret));
+					json_object_set_new(ji, "productKey", json_string(sd->productKey));
+					json_array_append_new(ja, ji);
+				}
+				json_object_set_new(jret, "SubDevList", ja);
 			}
 		}
 
@@ -265,7 +460,6 @@ static int gateway_get_property(char *in, char *out, int out_len, void *ctx) {
 			return -1;
 		}
 
-		
 		strcpy(out, sret);
 		log_info("out : %s", out);
 
@@ -299,7 +493,6 @@ static int gateway_set_property(char *in, void *ctx) {
 		const char *NETWORK_KEY =  NULL;
 
 
-
 		json_t *jBand = json_object_get(jin, "ZB_Band");
 		if (jBand != NULL) {
 			json_get_int(jin, "ZB_Band", &ZB_Band);
@@ -329,7 +522,7 @@ static int gateway_set_property(char *in, void *ctx) {
 		if (jNetKey != NULL) {
 			NETWORK_KEY =  json_get_string(jin, "NETWORK_KEY");
 		}
-
+		
 
 		if (ZB_Band != -1) {
 			log_warn("Error ZB_Band: %d, readonly!", ZB_Band);
@@ -377,9 +570,15 @@ static int gateway_set_property(char *in, void *ctx) {
 }
 
 static int gateway_call_service(char *identifier, char *in, char *out, int out_len, void *ctx) {
-		log_info("in : %s", in);
+	log_info("in : %s", in);
+
+	stAflyService_t *svr = afly_search_service("GW", "1000", identifier);
+	if (svr == NULL) {
 		log_warn("not support service : %s", identifier);
-    return -1;
+		return -1;
+	}
+
+	return svr->func(svr, in, out, out_len, ctx);
 }
 
 
@@ -448,6 +647,8 @@ static int event_handler(linkkit_event_t *ev, void *ctx) {
 
 			post_all_properties(gw);    /* sync to cloud */
 			gw->connected = 1;
+
+			afly_connect_change_on = 1;
 
 			break;
 
@@ -574,6 +775,7 @@ void  afly_reg(unsigned char ieee_addr[IEEE_ADDR_BYTES],  unsigned int model_id,
 
 	log_info("registering [%s] with model_id:%08x, rand:%s, sign:%s", ieee_addr_str, model_id, rand_str, sign);
 
+#if 0
 	if (strncmp(model_id_str, "1102", 4) != 0) {
 		log_warn("not support dev model: %s", model_id_str);
 		return;
@@ -610,6 +812,7 @@ void  afly_reg(unsigned char ieee_addr[IEEE_ADDR_BYTES],  unsigned int model_id,
 	}
 
 	log_info("New Sub Dev OK : ieee(%s), model(%s), id(%d)", ieee_addr_str, model_id_str, subdev_id);
+#endif
 }
 
 void	afly_unreg(unsigned char ieee_addr[IEEE_ADDR_BYTES]) {
@@ -618,6 +821,7 @@ void	afly_unreg(unsigned char ieee_addr[IEEE_ADDR_BYTES]) {
 
 	log_info("unregister : %s", ieee_addr_str);
 
+#if 0
 	stSubDev_t *dev = product_sub_get_subdev_by_ieee((char *)ieee_addr);
 	if (dev == NULL) {
 		log_warn("not exsit dev: %s", ieee_addr_str);
@@ -641,6 +845,7 @@ void	afly_unreg(unsigned char ieee_addr[IEEE_ADDR_BYTES]) {
 	product_sub_del_subdev_by_ieee((char *)ieee_addr);
 
 	log_info("delete subdev : %s ok", ieee_addr_str);
+#endif
 }
 
 void	afly_upt_online(unsigned char ieee_addr[IEEE_ADDR_BYTES], char online_or_not) {
@@ -649,6 +854,7 @@ void	afly_upt_online(unsigned char ieee_addr[IEEE_ADDR_BYTES], char online_or_no
 
 	log_info("update online : %s->%d", ieee_addr_str, online_or_not);
 
+#if 0
 	int subdev_id = product_sub_get_subdev_id_by_ieee((char *)ieee_addr);
 	if (subdev_id < 0) {
 		log_warn("not exsit dev: %s", ieee_addr_str);
@@ -665,11 +871,13 @@ void	afly_upt_online(unsigned char ieee_addr[IEEE_ADDR_BYTES], char online_or_no
 	}
 
 	log_info("update ret:%d", ret);
+#endif
 }
 
 void	afly_rpt_attrs(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endpoint_id, const char *attr_name[], const char *attr_value[]) {
 	log_info("report attr : Name:%s, Value:%s", attr_name[0], attr_value[0]);
 
+#if 0
 	/*
 	int ret = afly_zigbee_report_attrs((unsigned char *)ieee_addr, endpoint_id, attr_name, attr_value);
 	log_info("report ret : %d", ret);
@@ -678,6 +886,7 @@ void	afly_rpt_attrs(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endp
 		linkkit_gateway_post_property_json_sync
 		linkkit_gateway_post_property_json()
 	*/
+#endif
 }
 
 void	afly_rpt_event(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endpoint_id, const char *event_name, const char *event_args) {

@@ -43,13 +43,49 @@ static stUprotoCmd_t ucmds[] = {
 
 
 /* Functions for attr */
+/**> ZB3 */
 static int rpt_zclcmd(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_atr(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_register(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_unregister(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int rpt_online(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 //static int rpt_netinfo(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+
+/**> Nxp */
+static int get_nxp_list(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_list(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+static int set_nxp_add_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_nxp_del_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+static int rpt_nxp_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_device_deleted(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_lock_reboot(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_factory_reset(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+static int set_nxp_lock_add_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_nxp_lock_del_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_nxp_lock_add_card(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_nxp_lock_del_card(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+static int rpt_nxp_lock_local_add_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_lock_local_del_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_nxp_lock_del_all_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_lock_check_record(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_lock_pass_adddel_result(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+static int set_nxp_lock_mod_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int rpt_nxp_lock_pass_mod_result(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+static int rpt_nxp_lock_damage_alarm(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
+static int set_nxp_del_fing(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+static int set_nxp_add_fing(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
+
 static stUprotoAttrCmd_t uattrcmds[] = {
+	// Z3 :
 	//{"ember.zb3.permit",						NULL,									set_permit,					NULL},
 	//{"ember.zb3.remove",						NULL,									set_remove,					NULL},
 	{"ember.zb3.zclcmd",							NULL,										NULL,								rpt_zclcmd},
@@ -70,22 +106,60 @@ static stUprotoAttrCmd_t uattrcmds[] = {
 
 	//{"ember.zb3.list",							get_list,							NULL,								NULL},
 	//{"ember.zb3.inspect",						get_inspect,					NULL,								NULL},
+	
+
+	// Nxp :
+	{"mod.device_list",								get_nxp_list,					NULL,								rpt_nxp_list},
+	{"mod.add_device",								NULL,									set_nxp_add_device,	NULL},
+	{"mod.del_device",								NULL,									set_nxp_del_device,	NULL},
+	{"mod.new_device_added",					NULL,									NULL,								rpt_nxp_new_device_added},
+	{"mod.device_deleted",						NULL,									NULL,								rpt_nxp_device_deleted},
+	{"device.lock.reboot",						NULL,									NULL,								rpt_nxp_lock_reboot},
+	{"device.factory_reset",					NULL,									NULL,								rpt_nxp_factory_reset},
+	{"device.status",									NULL,									NULL,								rpt_nxp_status},
+	{"device.lock_add_password",			NULL,									set_nxp_lock_add_pass,	NULL},
+	{"device.lock_del_password",			NULL,									set_nxp_lock_del_pass,	NULL},
+	{"device.lock_add_ic_card",				NULL,									set_nxp_lock_add_card,	NULL},
+	{"device.lock_del_ic_card",				NULL,									set_nxp_lock_del_card,	NULL},
+	{"device.lock_local_add_password",NULL,									NULL,								rpt_nxp_lock_local_add_pass},
+	{"device.lock_local_del_password",NULL,									NULL,								rpt_nxp_lock_local_del_pass},
+	{"device.lock.del_all_password",  NULL,									set_nxp_lock_del_all_pass, NULL},
+	{"device.lock.check_record",			NULL,									NULL,								rpt_nxp_lock_check_record},
+	{"device.lock.password_adddel_result", NULL,						NULL,								rpt_nxp_lock_pass_adddel_result},
+	{"device.lock.modify_password",		NULL,									set_nxp_lock_mod_pass,	NULL},
+	{"device.lock.password_modify_result", NULL,						NULL,								rpt_nxp_lock_pass_mod_result},
+	{"device.lock.damage_alarm",			NULL,									NULL,								rpt_nxp_lock_damage_alarm},
+	{"device.lock.del_finger_print",	NULL,									set_nxp_del_fing,				NULL},
+	{"device.lock.add_finger_print",	NULL,									set_nxp_add_fing,				NULL},
 };
 
 
 static int		uproto_ubus_send(void *_jmsg) {
 	json_t *jmsg = (json_t *)_jmsg;
 
+	json_object_del(jmsg, "to");
+	json_object_set_new(jmsg, "to", json_string("NXP"));
 	char *smsg= json_dumps(jmsg, 0);
 	if (smsg != NULL) {
 		blob_buf_init(&b, 0);
 		blobmsg_add_string(&b, "PKT", smsg);
-		ubus_send_event(ue.ubus_ctx, UPROTO_EVENT_ID_REPORT, b.head);
+		/**> TODO determine the dest through the dest segment */
+		ubus_send_event(ue.ubus_ctx, UPROTO_EVENT_ID_REPORT_NXP, b.head);
 		free(smsg);
-		return 0;
 	}
 
-	return -1;
+	json_object_del(jmsg, "to");
+	json_object_set_new(jmsg, "to", json_string("ZB3"));
+	smsg= json_dumps(jmsg, 0);
+	if (smsg != NULL) {
+		blob_buf_init(&b, 0);
+		blobmsg_add_string(&b, "PKT", smsg);
+		/**> TODO determine the dest through the dest segment */
+		ubus_send_event(ue.ubus_ctx, UPROTO_EVENT_ID_REPORT, b.head);
+		free(smsg);
+	}
+
+	return 0;
 }
 
 
@@ -197,7 +271,7 @@ int uproto_handler_ubus_cmd_alink(const char *cmd) {
 	const char *from = json_get_string(jpkt, "from");
 	const char *to = json_get_string(jpkt, "to");
 	/* CLOUD, GATEWAY, NXP, GREENPOWER BLUETOOTH <ZB3> */
-	if (strcmp(from, "ZB3") != 0 ) {
+	if (strcmp(from, "ZB3") != 0 && strcmp(from, "NXP") != 0 ) {
 		log_warn("now not support ubus source : %s", from);
 		goto parse_jpkt_error;
 	}
@@ -246,7 +320,8 @@ int uproto_handler_ubus_cmd_alink(const char *cmd) {
 	log_info("from:%s,to:%s,type:%s,time:%d,,uuid:%s,cmdmac:%s, attr:%s",
 			from, to, ctype, dtime, uuid, cmdmac, attr);
 
-	if (strcmp(ctype, "reportAttribute") == 0 && usync_attr != NULL && strcmp(attr, usync_attr) == 0 && usync_ret == NULL) {
+	if (strcmp(ctype, "reportAttribute") == 0 && usync_attr != NULL && 
+			strcmp(attr, usync_attr) == 0 && usync_ret == NULL) {
 		/* fill result */
 		if (usync_mac != NULL) {
 			if (strcmp(cmdmac, usync_mac) == 0) {
@@ -454,7 +529,9 @@ int		uproto_init(void *_th, void *_fet) {
 	ue.ubus_ctx = ubus_connect(NULL);
 	memset(&ue.listener, 0, sizeof(ue.listener));
 	ue.listener.cb = uproto_handler_ubus_event;
+
 	ubus_register_event_handler(ue.ubus_ctx, &ue.listener, UPROTO_EVENT_ID_LISTEN);
+	ubus_register_event_handler(ue.ubus_ctx, &ue.listener, UPROTO_EVENT_ID_LISTEN_NXP);
 	file_event_reg(ue.fet, ue.ubus_ctx->sock.fd, uproto_ubus_in, NULL, NULL);
 
 	pthread_mutexattr_t attr;
@@ -699,6 +776,97 @@ static int rpt_atr(const char *uuid, const char *cmdmac,  const char *attr, json
 
 	return 0;
 }
+
+/**> Nxp */
+static int rpt_nxp_list(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+
+static int get_nxp_list(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+
+static int set_nxp_add_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+static int set_nxp_del_device(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+
+static int rpt_nxp_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+static int rpt_nxp_device_deleted(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+static int rpt_nxp_lock_reboot(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+static int rpt_nxp_factory_reset(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+static int rpt_nxp_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+
+static int set_nxp_lock_add_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+static int set_nxp_lock_del_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+static int set_nxp_lock_add_card(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+static int set_nxp_lock_del_card(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+
+static int rpt_nxp_lock_local_add_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+static int rpt_nxp_lock_local_del_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+static int set_nxp_lock_del_all_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+static int rpt_nxp_lock_check_record(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+static int rpt_nxp_lock_pass_adddel_result(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+
+static int set_nxp_lock_mod_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+static int rpt_nxp_lock_pass_mod_result(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+
+static int rpt_nxp_lock_damage_alarm(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	return 0;
+}
+
+static int set_nxp_del_fing(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+static int set_nxp_add_fing(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	/**> TODO */
+	return 0;
+}
+
 
 
 // uproto sync interface /////////////////////////////////////////////////////////

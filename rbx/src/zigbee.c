@@ -635,9 +635,9 @@ int zigbee_add_device_wite_list(char *s_dev_list) {
 	json_decref(jin);
 
 	json_t *jarg = json_object();
-	json_t *jret = uproto_call(NULL, "ember.zb3.wlist", "setAttribute", jarg, 1500);
 	json_object_set_new(jarg, "operation", json_string("add"));
 	json_object_set_new(jarg, "wlist", jlist);
+	json_t *jret = uproto_call(NULL, "ember.zb3.wlist", "setAttribute", jarg, 1500);
 	if (jret == NULL) {
 		log_warn("ubus no response %d", __LINE__);
 		return -1;
