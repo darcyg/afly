@@ -16,7 +16,7 @@
 #include "token_table.h"
 
 #define LOG_MAX_ID_SIZE	(64)		/* max chars allowed in ID string */
-#define LOG_MAX_FMT_STR_SIZE	(256)	/* reasonable format string limit */
+#define LOG_MAX_FMT_STR_SIZE	(4096)	/* reasonable format string limit */
 #define LOG_MIN_TIMESTAMP_SIZE	(24)	/* min buffer size for timestamp */
 
 /*

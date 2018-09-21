@@ -81,6 +81,7 @@ int product_sub_z3light_set_onoff(stSubDev_t *sd, int onoff);
 stSubDev_t *product_sub_search_by_devid(int devid);
 stSubDev_t *product_sub_search_by_name(const char *name);
 
+void product_sub_view();
 
 #ifdef __cplusplus
 }

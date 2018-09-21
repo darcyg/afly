@@ -195,7 +195,7 @@ static void	run_main() {
 	file_event_init(&fet);
 
 
-	afly_init(&th, &fet, loglvl);	
+	afly_init(&th, &fet, loglvl, "/etc/config/dusun/afly/subdev.db");	
 
 	uproto_init(&th, &fet);
 	

@@ -16,10 +16,9 @@
 #define UPROTO_EVENT_ID_REPORT "DS.EMBER.COMMAND"
 
 
-#define UPROTO_EVENT_ID_LISTEN_NXP "DS.NXP"
+#define UPROTO_EVENT_ID_LISTEN_NXP "DS.GATEWAY"
 #define UPROTO_EVENT_ID_REPORT_NXP "DS.NXP"
-//#define UPROTO_ME							 "CLOUD"
-#define UPROTO_ME							 "AFLY"
+#define UPROTO_ME							 "CLOUD"
 
 enum {
 	UE_SEND_MSG = 0x00,
@@ -36,6 +35,7 @@ typedef struct stUdrvEnv {
 	pthread_mutex_t mutex;
 	struct ubus_context *ubus_ctx;
 	struct ubus_event_handler listener;
+	struct ubus_event_handler listenerNxp;
 }stUdrvEnv_t;
 
 

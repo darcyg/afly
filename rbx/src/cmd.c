@@ -11,7 +11,8 @@
 #include "hex.h"
 
 #include "cmd.h"
-#include "zigbee.h"
+//#include "zigbee.h"
+#include "product_sub.h"
 
 
 void do_cmd_exit(char *argv[], int argc);
@@ -92,7 +93,7 @@ void cmd_in(void *arg, int fd) {
 
 	size = ret;
 	buf[size] = 0;
-	if (buf[size-1] == '\n') {
+	if (size >= 1 && buf[size-1] == '\n') {
 		buf[size-1] = 0;
 		size--;
 	}
@@ -142,10 +143,13 @@ void do_cmd_info(char *argv[], int argc) {
 	log_info("info : [%s]", infostr);
 }
 void do_cmd_list(char *argv[], int argc) {
-	char liststr[512];
+	//char liststr[512];
 	//zigbee_list(liststr, sizeof(liststr));
-
-	log_info("list: [%s]", liststr);
+	
+	log_info("SubDev List:");
+	product_sub_view();
+	
+	//log_info("list: [%s]", liststr);
 }
 void do_cmd_permit(char *argv[], int argc) {
 	if (argc != 2) {
@@ -153,7 +157,7 @@ void do_cmd_permit(char *argv[], int argc) {
 		return;
 	}
 
-	int duration = atoi(argv[1]);
+	//int duration = atoi(argv[1]);
 	//zigbee_permit_join(duration);
 }
 void do_cmd_remove(char *argv[], int argc) {
@@ -177,7 +181,7 @@ void do_cmd_getattr(char *argv[], int argc) {
 	hex_parse((u8*)extaddr, sizeof(extaddr), argv[1], 0);
 	char ep;
 	hex_parse((u8*)&ep, sizeof(ep), argv[2],0);
-	const char *attr_name = argv[3];
+	//const char *attr_name = argv[3];
 
 	//zigbee_get_attr(extaddr, ep, attr_name);
 }
@@ -191,8 +195,8 @@ void do_cmd_setattr(char *argv[], int argc) {
 	hex_parse((u8*)extaddr, sizeof(extaddr), argv[1], 0);
 	char ep;
 	hex_parse((u8*)&ep, sizeof(ep), argv[2],0);
-	const char *attr_name = argv[3];
-	const char *attr_value = argv[4];
+	//const char *attr_name = argv[3];
+	//const char *attr_value = argv[4];
 
 	//zigbee_set_attr(extaddr, ep, attr_name, attr_value);
 }
@@ -206,8 +210,8 @@ void do_cmd_zclcmd(char *argv[], int argc) {
 	hex_parse((u8*)extaddr, sizeof(extaddr), argv[1], 0);
 	char ep;
 	hex_parse((u8*)&ep, sizeof(ep), argv[2],0);
-	const char *cmd_name = argv[3];
-	const char *cmd_arg = argv[4];
+	//const char *cmd_name = argv[3];
+	//const char *cmd_arg = argv[4];
 
 	//zigbee_zclcmd(extaddr, ep, cmd_name, cmd_arg);
 

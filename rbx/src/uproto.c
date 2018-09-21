@@ -84,6 +84,7 @@ static int rpt_nxp_lock_damage_alarm(const char *uuid, const char *cmdmac,  cons
 static int set_nxp_del_fing(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static int set_nxp_add_fing(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 
+static int rpt_nxp_lock_rpt_sys_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value);
 static stUprotoAttrCmd_t uattrcmds[] = {
 	// Z3 :
 	//{"ember.zb3.permit",						NULL,									set_permit,					NULL},
@@ -113,7 +114,10 @@ static stUprotoAttrCmd_t uattrcmds[] = {
 	{"mod.add_device",								NULL,									set_nxp_add_device,	NULL},
 	{"mod.del_device",								NULL,									set_nxp_del_device,	NULL},
 	{"mod.new_device_added",					NULL,									NULL,								rpt_nxp_new_device_added},
+
+	{"device.device_deleted",						NULL,									NULL,								rpt_nxp_device_deleted},
 	{"mod.device_deleted",						NULL,									NULL,								rpt_nxp_device_deleted},
+
 	{"device.lock.reboot",						NULL,									NULL,								rpt_nxp_lock_reboot},
 	{"device.factory_reset",					NULL,									NULL,								rpt_nxp_factory_reset},
 	{"device.status",									NULL,									NULL,								rpt_nxp_status},
@@ -131,6 +135,7 @@ static stUprotoAttrCmd_t uattrcmds[] = {
 	{"device.lock.damage_alarm",			NULL,									NULL,								rpt_nxp_lock_damage_alarm},
 	{"device.lock.del_finger_print",	NULL,									set_nxp_del_fing,				NULL},
 	{"device.lock.add_finger_print",	NULL,									set_nxp_add_fing,				NULL},
+	{"device.lock.report_system_status", NULL,							NULL,								rpt_nxp_lock_rpt_sys_status},
 };
 
 
@@ -529,10 +534,14 @@ int		uproto_init(void *_th, void *_fet) {
 	ue.ubus_ctx = ubus_connect(NULL);
 	memset(&ue.listener, 0, sizeof(ue.listener));
 	ue.listener.cb = uproto_handler_ubus_event;
+	memset(&ue.listenerNxp, 0, sizeof(ue.listenerNxp));
+	ue.listenerNxp.cb = uproto_handler_ubus_event;
 
 	ubus_register_event_handler(ue.ubus_ctx, &ue.listener, UPROTO_EVENT_ID_LISTEN);
-	ubus_register_event_handler(ue.ubus_ctx, &ue.listener, UPROTO_EVENT_ID_LISTEN_NXP);
+	ubus_register_event_handler(ue.ubus_ctx, &ue.listenerNxp, UPROTO_EVENT_ID_LISTEN_NXP);
+
 	file_event_reg(ue.fet, ue.ubus_ctx->sock.fd, uproto_ubus_in, NULL, NULL);
+
 
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
@@ -779,6 +788,46 @@ static int rpt_atr(const char *uuid, const char *cmdmac,  const char *attr, json
 
 /**> Nxp */
 static int rpt_nxp_list(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+
+	json_t *jlist = json_object_get(value, "device_list");
+	if (jlist == NULL) {
+		log_warn("Not Found device_list!");
+		return -1;
+	}
+
+	if (!json_is_array(jlist)) {
+		log_warn("device_list is not array!");
+		return -2;
+	}
+	
+	size_t  i		= 0;
+	json_t *jv	= NULL;
+	json_array_foreach(jlist, i, jv) {
+		//mac": "00158d00026c5415", "type": "1203", "version": "1.0.13", "model": "0009", "battery": 100, "online": 0, "rssi": 100
+		const char *name			= json_get_string(jv, "mac");
+		const char *model			= json_get_string(jv, "model");
+		const char *type			= json_get_string(jv, "type");
+		const char *version		= json_get_string(jv, "version");
+		int battery = 100;			  json_get_int(jv, "battery", &battery);
+		int online	= 0;			  json_get_int(jv, "battery", &online);
+		int rssi		= 100;			  json_get_int(jv, "battery", &rssi);
+
+		if (name == NULL || type == NULL || version == NULL || model == NULL) {
+			log_warn("NULL name/type/version/model!");
+			continue;
+		}
+
+		afly_nxp_reg(name, model, type, version, battery, online, rssi);
+	}
+
 	return 0;
 }
 
@@ -797,18 +846,140 @@ static int set_nxp_del_device(const char *uuid, const char *cmdmac,  const char 
 }
 
 static int rpt_nxp_new_device_added(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+
+	//mac": "00158d00026c5415", "type": "1203", "version": "1.0.13", "model": "0009", "battery": 100, "online": 0, "rssi": 100
+	const char *name			= json_get_string(jv, "mac");
+	const char *model			= json_get_string(jv, "model");
+	const char *type			= json_get_string(jv, "type");
+	const char *version		= json_get_string(jv, "version");
+	int battery = 100;			  json_get_int(jv, "battery", &battery);
+	int online	= 0;			  json_get_int(jv, "battery", &online);
+	int rssi		= 100;			  json_get_int(jv, "battery", &rssi);
+
+	if (name == NULL || type == NULL || version == NULL || model == NULL) {
+		log_warn("NULL name/type/version/model!");
+		return -1;
+	}
+
+	afly_nxp_reg(name, model, type, version, battery, online, rssi);
+
+	
 	return 0;
 }
 static int rpt_nxp_device_deleted(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	//mac": "00158d00026c5415",
+	const char *name			= json_get_string(jv, "mac");
+
+	if (name == NULL) {
+		log_warn("NULL name!");
+		return -1;
+	}
+
+	afly_nxp_unreg(name);
+
+
 	return 0;
 }
 static int rpt_nxp_lock_reboot(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	//mac": "00158d00026c5415",
+	const char *name			= json_get_string(jv, "mac");
+
+	if (name == NULL) {
+		log_warn("NULL name!");
+		return -1;
+	}
+
+	afly_nxp_rpt_event(name, EVENT_NXP_REBOOT, NULL, 0);
+
+
 	return 0;
 }
 static int rpt_nxp_factory_reset(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	//mac": "00158d00026c5415",
+	const char *name			= json_get_string(jv, "mac");
+
+	if (name == NULL) {
+		log_warn("NULL name!");
+		return -1;
+	}
+
+	afly_nxp_rpt_event(name, EVENT_NXP_FACTORY_RESET, NULL, 0);
+
+
 	return 0;
 }
 static int rpt_nxp_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	//mac": "00158d00026c5415",
+	const char *name			= (const char *)cmdmac;
+	int battery = 100;			  json_get_int(jv, "battery", &battery);
+	const char *type			= json_get_string(jv, "type");
+	int online	= 0;			  json_get_int(jv, "battery", &online);
+	
+	int passwdNum		=   0;	json_get_int(jv, "passwdNum", &passwdNum);
+	int passwdAll		=  49;	json_get_int(jv, "passwdAll", &passwdAll);
+	int	cardNum		=     0;	json_get_int(jv, "cardNum",		&cardNum);
+	int cardAll		=     0;	json_get_int(jv, "cardAll",		&cardAll);
+	int fingerNum		=   0;	json_get_int(jv, "fingerNum", &fingerNum);
+	int fingerAll		=   0;	json_get_int(jv, "fingerAll", &fingerAll);
+	int rssi		=			100;	json_get_int(jv, "rssi", &rssi);
+
+	if (name == NULL || type == NULL) {
+		log_warn("NULL name/type/!");
+		return -1;
+	}
+
+	afly_nxp_upt_online(name,online,type, battery, passwdNum, passwdAll, cardNum, cardAll, fingerNum, fingerAll, rssi);
+
 	return 0;
 }
 
@@ -830,9 +1001,13 @@ static int set_nxp_lock_del_card(const char *uuid, const char *cmdmac,  const ch
 }
 
 static int rpt_nxp_lock_local_add_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+	/**> 0008/0009 does not have this */
 	return 0;
 }
 static int rpt_nxp_lock_local_del_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+	/**> 0008/0009 does not have this */
 	return 0;
 }
 static int set_nxp_lock_del_all_pass(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
@@ -840,9 +1015,86 @@ static int set_nxp_lock_del_all_pass(const char *uuid, const char *cmdmac,  cons
 	return 0;
 }
 static int rpt_nxp_lock_check_record(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	//mac": "00158d00026c5415",
+	const char *name			= (const char *)cmdmac;
+
+	int passType = -1;			json_get_int(jv, "passType", &passType);
+	int pass		 = -1;			json_get_int(jv, "pass",		 &pass);
+	int time		 = -1;			json_get_int(jv, "time",		 &time);
+	int passId	 = -1;			json_get_int(jv, "passId",	 &passId);
+	int passVal1 = -1;			json_get_int(jv, "passVal1", &passVal1);
+	//const char *cardId		= json_get_string(jv, "cardId");
+
+	if (!(passType == 0 || passType == 1 || passType == 5)) {
+		log_warn("not support passType: %d", passType);
+		return -1;
+	}
+	if (time == -1 || passId == -1) {
+		log_warn("does't have time or passId");
+		return -2;
+	}
+
+	if (passVal1 == -1) {
+		log_warn("not correct passVal1: %d", passVal1);
+		return -3;
+	}
+
+	if (passType == 0) { // normal
+	} else if (passType == 1) { // dynamic
+	} else if (passType == 5) { // time count
+	}
+
+	
+	int buf[5] = {0};
+	buf[0] = passType;
+	buf[1] = pass;
+	buf[2] = time;
+	buf[3] = passId;
+	buf[4] = passVal1;
+	afly_nxp_rpt_event(name, EVENT_NXP_CHECK_RECORD, (char *)&buf[0], sizeof(buf));
+
 	return 0;
 }
 static int rpt_nxp_lock_pass_adddel_result(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	const char *name			= (const char *)cmdmac;
+	const char *op				= json_get_string(jv, "operation");
+	int passId	= -1;				json_get_int(jv, "passId", &passId);
+	int code		= -1;				json_get_int(jv, "code",	 &code);
+
+	if (name == NULL || op == NULL || passId == -1 || !(code >= 0 || code <= 20)) {
+		log_warn("error param: name:%s, op:%s, passId:%d, code:%d", name, op, passId, code);
+		return -1;
+	}
+
+	int opadd = strcmp(op, "add") == 0 ? 1 : 0;
+	
+	int buf[3];
+	buf[0] = opadd;
+	buf[1] = passId;
+	buf[2] = code;
+
+	afly_nxp_rpt_event(name, EVENT_NXP_ADD_DEL_PASS_RET, (char *)&buf[0], sizeof(buf));
+
 	return 0;
 }
 
@@ -851,10 +1103,68 @@ static int set_nxp_lock_mod_pass(const char *uuid, const char *cmdmac,  const ch
 	return 0;
 }
 static int rpt_nxp_lock_pass_mod_result(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	const char *name			= (const char *)cmdmac;
+	const char *op				= json_get_string(jv, "operation");
+	int passId	= -1;				json_get_int(jv, "passId", &passId);
+	int code		= -1;				json_get_int(jv, "code",	 &code);
+
+	if (name == NULL || op == NULL || passId == -1 || !(code >= 0 || code <= 20)) {
+		log_warn("error param: name:%s, op:%s, passId:%d, code:%d", name, op, passId, code);
+		return -1;
+	}
+	if (strcmp(op, "modify") != 0) {
+		log_warn("not corrent operation:%s", op);
+		return -2;
+	}
+
+	int opadd = 2;
+	
+	int buf[3];
+	buf[0] = opadd;
+	buf[1] = passId;
+	buf[2] = code;
+
+	afly_nxp_rpt_event(name, EVENT_NXP_MOD_PASS_RET, (char *)&buf[0], sizeof(buf));
 	return 0;
 }
 
 static int rpt_nxp_lock_damage_alarm(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	const char *name			= (const char *)cmdmac;
+	int alarmStatus = -1;				json_get_int(jv, "alarmStatus", &alarmStatus);
+	int time		= -1;						json_get_int(jv, "time",		 &time);
+
+	if (name == NULL || time == -1 || alarmStatus == -1) {
+		log_warn("error param: name:%s, time:%d, alarmStatus:%d", name, time, alarmStatus);
+		return -1;
+	}
+
+	int buf[2];
+	buf[0] = alarmStatus;
+	buf[1] = time;
+
+
+	afly_nxp_rpt_event(name, EVENT_NXP_DAMAGE_ALARM, (char *)&buf[0], sizeof(buf));
+
 	return 0;
 }
 
@@ -864,6 +1174,44 @@ static int set_nxp_del_fing(const char *uuid, const char *cmdmac,  const char *a
 }
 static int set_nxp_add_fing(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	/**> TODO */
+	return 0;
+}
+
+static int rpt_nxp_lock_rpt_sys_status(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
+	log_info("-");
+
+	char *svalue = json_dumps(value, 0);
+	if (svalue != NULL) {
+		log_info("svalue is [%s]", svalue);
+		free(svalue);
+	}
+
+	json_t *jv = value;
+
+	const char *name						= (const char *)cmdmac;
+	const char *systemStatus		= json_get_string(jv, "systemStatus");
+
+	if (name == NULL || systemStatus == NULL) {
+		log_warn("error param: name:%s, systemStatus:%d", name, systemStatus);
+		return -1;
+	}
+
+	int locked = 0;	
+	if (strcmp(systemStatus, "systemLock") == 0) {
+		locked = 1;
+	}
+	int lowpower = 0;
+	if (strcmp(systemStatus, "lowPowerAlarm") == 0) {
+		lowpower = 1;
+	}
+
+	int buf[2];
+	buf[0] = locked;
+	buf[1] = lowpower;
+
+
+	afly_nxp_rpt_event(name, EVENT_NXP_DAMAGE_ALARM, (char *)&buf[0], sizeof(buf));
+
 	return 0;
 }
 

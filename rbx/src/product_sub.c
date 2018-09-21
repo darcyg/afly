@@ -7,7 +7,41 @@
 
 
 static char *subdev_file = "/etc/config/dusun/afly/subdev.db";
-static stSubDev_t subdevs[MAX_SUB_DEV] = {{0}};
+static stSubDev_t subdevs[MAX_SUB_DEV] = {
+	[0] =  {
+		.use = 1,
+		.mac = {},
+		.devid = 1,
+		.productKey = "a1wcKZILMWO",
+		.deviceName = "L92bxAd5sgKQg20K2LLF",
+		.deviceSecret = "rT8fGtnhTTy3gyH5mL8BjKVvRGUz4GbE",
+
+		.battery = 100,
+		.online = 0,
+		.type = "1203",
+		.version = "1.0",
+		.model = "1203",
+		.app = "NXP",
+		.aset = {{0}},
+	},
+	[1] =  {
+		.use = 1,
+		.mac = {},
+		.devid = 1,
+		.productKey = "a1wcKZILMWO",
+		.deviceName = "00158d00026c540a",
+		.deviceSecret = "3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1",
+
+		.battery = 100,
+		.online = 0,
+		.type = "1203",
+		.version = "1.0",
+		.model = "1203",
+		.app = "NXP",
+		.aset = {{0}},
+	},
+
+};
 
 //////////////////////////////////////////////////////////////
 static stSubDev_t *product_sub_malloc() {
@@ -76,7 +110,8 @@ int product_sub_load_all(const char *db) {
 		return _product_sub_load_all(subdev_file);
 	}
 	
-	memset(subdevs, 0, sizeof(subdevs));
+	memset(&subdevs[2], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 2);
+	//memset(subdevs, 0, sizeof(subdevs));
 
 	return product_sub_save_all(subdev_file);
 }
@@ -292,6 +327,29 @@ stSubDev_t *product_sub_get_i(int i) {
 
 }
 
+void product_sub_view() {
+	int j = 0;
+	int cnt = sizeof(subdevs)/sizeof(subdevs[0]);
+
+	for (j = 0; j < cnt; j++) {
+		stSubDev_t *sd = &subdevs[j];
+		if (!sd->use) {
+			continue;
+		}
+		
+		log_info("deviceName:%s, online:%d",sd->deviceName, sd->online );
+		log_info("\t   devid: %d", sd->devid);
+		log_info("\t   roductKey: %s", sd->productKey);
+		log_info("\t   deviceSecret: %s", sd->deviceSecret);
+		log_info("\t   battery: %d", sd->battery);
+		log_info("\t   type: %s", sd->type);
+		log_info("\t   version: %s", sd->version);
+		log_info("\t   model: %s", sd->model);
+		log_info("\t   app: %s", sd->app);
+
+	}
+
+}
 
 
 int product_sub_lock_get_lock_status(stSubDev_t *sd) {

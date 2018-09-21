@@ -44,9 +44,11 @@ static stAflyService_t svrs[] = {
 };
 
 //////////////////////////////////////////////////////////////////////////
-int		afly_init(void *_th, void *_fet, int loglvl) {
+int		afly_init(void *_th, void *_fet, int loglvl, char *dbfile) {
 	env.th = _th;
 	env.fet = _fet;
+
+	product_sub_load_all(dbfile);
 	
 	timer_init(&env.step_timer, afly_handler_run);
 	timer_init(&env.sync_list_timer, afly_handler_sync_list_run);
@@ -55,8 +57,10 @@ int		afly_init(void *_th, void *_fet, int loglvl) {
 
 	_afly_init(loglvl);
 
-	afly_reg((unsigned char*)"\x01\x02\x03\x04\x05\x06\x07\x08", 1102, (char *)"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f", "sign", 0);
-	afly_upt_online((unsigned char *)"\x01\x02\x03\x04\x05\x06\x07\x08", 1);
+	/**
+   * afly_reg((unsigned char*)"\x01\x02\x03\x04\x05\x06\x07\x08", 1102, (char *)"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f", "sign", 0);
+	 * afly_upt_online((unsigned char *)"\x01\x02\x03\x04\x05\x06\x07\x08", 1);
+	 * */
 
 	
 	timer_set(env.th, &env.sync_list_timer, 2000);
@@ -605,35 +609,33 @@ static linkkit_cbs_t alink_cbs = {
 
 ///////////////////////////// AFly Event //////////////////////////////////////////////////////////
 static int post_all_properties(stGateway_t *gw) {
-#if 0
-    cJSON *pJson = cJSON_CreateObject();
+	json_t *jmsg = json_object();
 
-    if (!pJson) {
-        return -1;
-		}
+	if (!jmsg) {
+		return -1;
+	}
 
-    cJSON_AddNumberToObject(pJson, "ZB_Band", gw->ZB_Band);
-    cJSON_AddNumberToObject(pJson, "ZB_Channel", gw->ZB_Channel);
-    cJSON_AddStringToObject(pJson, "ZB_CO_MAC", gw->ZB_CO_MAC);
-    cJSON_AddStringToObject(pJson, "ZB_PAN_ID", gw->ZB_PAN_ID);
-    cJSON_AddStringToObject(pJson, "EXT_PAN_ID", gw->EXT_PAN_ID);
-    cJSON_AddStringToObject(pJson, "NETWORK_KEY", gw->NETWORK_KEY);
+	json_object_set_new(jmsg, "ZB_Band", json_integer(gw->ZB_Band));
+	json_object_set_new(jmsg, "ZB_Channel", json_integer(gw->ZB_Channel));
+	json_object_set_new(jmsg, "ZB_CO_MAC", json_string(gw->ZB_CO_MAC));
+	json_object_set_new(jmsg, "ZB_PAN_ID", json_string(gw->ZB_PAN_ID));
+	json_object_set_new(jmsg, "EXT_PAN_ID", json_string(gw->ZB_PAN_ID));
+	json_object_set_new(jmsg, "NETWORK_KEY", json_string(gw->NETWORK_KEY));
 
-    char *p = cJSON_PrintUnformatted(pJson);
-    if (!p) {
-        cJSON_Delete(pJson);
-        return -1;
-    }
+	char *smsg = json_dumps(jmsg, 0);
+	if (smsg == NULL) {
+		json_decref(jmsg);
+		return -1;
+	}
 
-    log_info("property: %s", p);
+	log_info("property: %s", smsg);
 
-    linkkit_gateway_post_property_json_sync(gw->lk_dev, p, 5000);
+	linkkit_gateway_post_property_json_sync(gw->lk_dev, smsg, 5000);
 
-    cJSON_Delete(pJson);
-    free(p);
-#endif
+	free(smsg);
+	json_decref(jmsg);
 
-    return 0;
+	return 0;
 }
 
 static int event_handler(linkkit_event_t *ev, void *ctx) {
@@ -763,7 +765,8 @@ void _afly_end() {
 }
 
 //////////////////////////// AFly Interface ////////////////////////////////////////////////////
-void  afly_reg(unsigned char ieee_addr[IEEE_ADDR_BYTES],  unsigned int model_id, const char rand[SUBDEV_RAND_BYTES], const char *sign, int supe) {
+// Z3
+void  afly_z3_reg(unsigned char ieee_addr[IEEE_ADDR_BYTES],  unsigned int model_id, const char rand[SUBDEV_RAND_BYTES], const char *sign, int supe) {
 	char ieee_addr_str[32];
 	hex_string(ieee_addr_str, sizeof(ieee_addr_str), (u8*)ieee_addr, IEEE_ADDR_BYTES, 0, 0);
 
@@ -815,7 +818,7 @@ void  afly_reg(unsigned char ieee_addr[IEEE_ADDR_BYTES],  unsigned int model_id,
 #endif
 }
 
-void	afly_unreg(unsigned char ieee_addr[IEEE_ADDR_BYTES]) {
+void	afly_z3_unreg(unsigned char ieee_addr[IEEE_ADDR_BYTES]) {
 	char ieee_addr_str[32];
 	hex_string(ieee_addr_str, sizeof(ieee_addr_str), (u8*)ieee_addr, IEEE_ADDR_BYTES, 0, 0);
 
@@ -848,7 +851,7 @@ void	afly_unreg(unsigned char ieee_addr[IEEE_ADDR_BYTES]) {
 #endif
 }
 
-void	afly_upt_online(unsigned char ieee_addr[IEEE_ADDR_BYTES], char online_or_not) {
+void	afly_z3_upt_online(unsigned char ieee_addr[IEEE_ADDR_BYTES], char online_or_not) {
 	char ieee_addr_str[32];
 	hex_string(ieee_addr_str, sizeof(ieee_addr_str), (u8*)ieee_addr, IEEE_ADDR_BYTES, 0, 0);
 
@@ -874,7 +877,7 @@ void	afly_upt_online(unsigned char ieee_addr[IEEE_ADDR_BYTES], char online_or_no
 #endif
 }
 
-void	afly_rpt_attrs(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endpoint_id, const char *attr_name[], const char *attr_value[]) {
+void	afly_z3_rpt_attrs(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endpoint_id, const char *attr_name[], const char *attr_value[]) {
 	log_info("report attr : Name:%s, Value:%s", attr_name[0], attr_value[0]);
 
 #if 0
@@ -889,7 +892,7 @@ void	afly_rpt_attrs(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endp
 #endif
 }
 
-void	afly_rpt_event(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endpoint_id, const char *event_name, const char *event_args) {
+void	afly_z3_rpt_event(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endpoint_id, const char *event_name, const char *event_args) {
 	log_info("report cmd : %s", event_name);
 
 	/*
@@ -901,4 +904,57 @@ void	afly_rpt_event(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endp
 	*/
 }
 
+
+// NXP
+void  afly_nxp_reg(const char *name, const char *model, const char *type, const char *version, int battery, int online, int rssi) {
+	log_info("register %s, model:%s, type:%s, version:%s, battery:%d, online:%d, rssi:%d", 
+						name, model, type, version, battery, online, rssi);
+}
+
+void afly_nxp_unreg(const char *name) {
+	log_info("unregister %s", name);
+}
+
+void	afly_nxp_upt_online(const char *name, int online, const char *type, int battery, 
+			int passNum, int passAll, int cardNum, int cardAll, int fingNum, int fingAll, int rssi) { 
+
+	log_info("rpt online %s, online:%d, type:%s, battery:%d,"
+					 " passNum:%d, passAll:%d, cardNum:%d, cardAll:%d, fingNum:%d, fingAll:%d, rssi:%d",
+						name, online, type, battery, passNum, passAll, cardNum, cardAll, fingNum, fingAll, rssi);
+}
+
+void afly_nxp_rpt_attrs() {
+	log_info("-");
+}
+
+void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
+	/**
+	 * EVENT_NXP_NONE					= 0x00,
+	 * EVENT_NXP_REBOOT				= 0x01,			NULL, 0
+	 * EVENT_NXP_FACTORY_RESET = 0x02,		NULL, 0
+	 * EVENT_NXP_CHECK_RECORD  = 0x03,		passType, pass, time, passId, passVal1,
+	 * EVENT_NXP_ADD_DEL_PASS_RET = 0x04, opadd, passId, code
+	 * EVENT_NXP_MOD_PASS_RET	= 0x05,			opadd, passId, code
+	 * EVENT_NXP_DAMAGE_ALARM	= 0x06,			alarmStatus, time
+	 * EVENT_NXP_SYS_STATUS		= 0x07,			locked, lowpower
+	 * */
+
+	/**
+   * 0008/0009 : 0x02, 0x03, 0x04, 0x05, 0x07 
+   * */
+	
+	static const char *estr[] = {
+		"EVENT_NXP_NONE", 
+		"EVENT_NXP_REBOOT",
+		"EVENT_NXP_FACTORY_RESET",
+		"EVENT_NXP_CHECK_RECORD(passType, pass, time, passId, passVal1)",
+		"EVENT_NXP_ADD_DEL_PASS_RET(op, passId, code)",
+		"EVENT_NXP_MOD_PASS_RET(op, passId, code)",		
+		"EVENT_NXP_DAMAGE_ALARM(alarmStatus, time)",
+		"EVENT_NXP_SYS_STATUS(locked, lowpower)",
+	};
+
+	log_info("%s, eid:%d(%s), ", name, eid, estr[eid%(sizeof(estr)/sizeof(estr[0]))] );
+	log_debug_hex("buf :", buf, len);
+}
 
