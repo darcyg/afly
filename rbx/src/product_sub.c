@@ -11,7 +11,7 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {
 	[0] =  {
 		.use = 1,
 		.mac = {},
-		.devid = 1,
+		.devid = 0,
 		.productKey = "a1wcKZILMWO",
 		.deviceName = "L92bxAd5sgKQg20K2LLF",
 		.deviceSecret = "rT8fGtnhTTy3gyH5mL8BjKVvRGUz4GbE",
@@ -27,7 +27,7 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {
 	[1] =  {
 		.use = 1,
 		.mac = {},
-		.devid = 1,
+		.devid = 0,
 		.productKey = "a1wcKZILMWO",
 		.deviceName = "00158d00026c540a",
 		.deviceSecret = "3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1",
@@ -61,6 +61,20 @@ static void product_sub_free(stSubDev_t *dev) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
+static void product_sub_clr_id_after_load() {
+	int j = 0;
+	int cnt = sizeof(subdevs)/sizeof(subdevs[0]);
+
+	for (j = 0; j < cnt; j++) {
+		stSubDev_t *sd = &subdevs[j];
+		if (!sd->use) {
+			continue;
+		}
+
+		sd->devid = 0;
+	}
+}
+
 static int product_sub_file_exsit(const char *file) {
 	if (access(file, F_OK) == 0) {
 		return 1;
@@ -79,6 +93,8 @@ static int _product_sub_load_all(const char *db) {
 		fclose(fp);
 		return -2;
 	}
+
+	product_sub_clr_id_after_load();
 
 	fclose(fp);
 
@@ -198,6 +214,14 @@ int product_sub_sget(stSubDev_t *sd, int off, int size, char *buf) {
 	}
 
 	return product_sub_get(sd, off, size, buf);
+}
+
+
+int product_sub_empty(stSubDev_t *sd) {
+	sd->mac[0] = 0;
+	sd->devid = 0;
+	memset(&sd->battery, 0, (unsigned int)(sd + 1) - (unsigned int)&sd->battery);
+	return 0;
 }
 
 

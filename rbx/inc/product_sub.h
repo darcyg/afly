@@ -36,11 +36,18 @@ typedef struct stSubDev {
     char version[32];
     char model[32];
 		char app[32];
+		int rssi;
 
 
 		union {
 			struct {
 				int lock_status;
+				int passNum;
+				int passAll;
+				int cardNum;
+				int cardAll;
+				int fingNum;
+				int fingAll;
 				stLockKey_t keys[100];
 			} lock;
 			struct {
@@ -55,11 +62,13 @@ typedef struct stSubDev {
 int product_sub_load_all(const char *db);
 //int product_sub_save_all();
 //int product_sub_load(stSubDev_t *sd, int off, int size);
-//int product_sub_save(stSubDev_t *sd, int off, int size);
+int product_sub_save(stSubDev_t *sd, int off, int size);
 int product_sub_set(stSubDev_t *sd, int off, int size, char *buf);
 int product_sub_get(stSubDev_t *sd, int off, int size, char *buf);
 int product_sub_sset(stSubDev_t *sd, int off, int size, char *buf);
 //int product_sub_sget(stSubDev_t *sd, int off, int size, char *buf);
+
+int product_sub_empty(stSubDev_t *sd);
 
 int product_sub_add(const char *name, const char *key, const char *secret);
 int product_sub_del(const char *name);

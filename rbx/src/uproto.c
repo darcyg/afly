@@ -961,7 +961,7 @@ static int rpt_nxp_status(const char *uuid, const char *cmdmac,  const char *att
 
 	//mac": "00158d00026c5415",
 	const char *name			= (const char *)cmdmac;
-	int battery = 100;			  json_get_int(jv, "battery", &battery);
+	int battery = -1;			  json_get_int(jv, "battery", &battery);
 	const char *type			= json_get_string(jv, "type");
 	int online	= 0;			  json_get_int(jv, "battery", &online);
 	
@@ -979,6 +979,15 @@ static int rpt_nxp_status(const char *uuid, const char *cmdmac,  const char *att
 	}
 
 	afly_nxp_upt_online(name,online,type, battery, passwdNum, passwdAll, cardNum, cardAll, fingerNum, fingerAll, rssi);
+
+	if (battery < 30 && online) {
+		int locked = 0;
+		int lowpower = 1;
+		int buf[2];
+		buf[0] = locked;
+		buf[1] = lowpower;
+		afly_nxp_rpt_event(name, EVENT_NXP_SYS_STATUS, buf, sizeof(buf));
+	}
 
 	return 0;
 }
@@ -1192,7 +1201,7 @@ static int rpt_nxp_lock_rpt_sys_status(const char *uuid, const char *cmdmac,  co
 	const char *systemStatus		= json_get_string(jv, "systemStatus");
 
 	if (name == NULL || systemStatus == NULL) {
-		log_warn("error param: name:%s, systemStatus:%d", name, systemStatus);
+		log_warn("error param: name:%s, systemStatus:%s", name, systemStatus);
 		return -1;
 	}
 
@@ -1210,7 +1219,7 @@ static int rpt_nxp_lock_rpt_sys_status(const char *uuid, const char *cmdmac,  co
 	buf[1] = lowpower;
 
 
-	afly_nxp_rpt_event(name, EVENT_NXP_DAMAGE_ALARM, (char *)&buf[0], sizeof(buf));
+	afly_nxp_rpt_event(name, EVENT_NXP_SYS_STATUS, (char *)&buf[0], sizeof(buf));
 
 	return 0;
 }
