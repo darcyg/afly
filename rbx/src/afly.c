@@ -20,6 +20,9 @@
 #include "json_parser.h"
 
 #include "nxpx.h"
+#include "schedule.h"
+
+
 
 
 void _afly_init(int loglvl);
@@ -48,10 +51,12 @@ int		afly_init(void *_th, void *_fet, int loglvl, char *dbfile) {
 	env.th = _th;
 	env.fet = _fet;
 
-	product_sub_load_all(dbfile);
+	product_sub_load_all(dbfile, _fet);
 
 	timer_init(&env.step_timer, afly_handler_run);
 	timer_init(&env.sync_list_timer, afly_handler_sync_list_run);
+	timer_init(&env.task_timer, afly_handler_task_run);
+	
 
 	lockqueue_init(&env.msgq);
 
@@ -109,6 +114,27 @@ void	afly_handler_sync_list_run(struct timer *timer) {
 
 		last = time(NULL);
 	}
+}
+
+void	afly_handler_task_run(struct timer *timer) {
+		int delt = schedue_first_task_delay();
+		if (delt < 0) {	
+			return;
+		}
+
+		if (delt == 0) {
+			stSchduleTask_t *task = schedue_first_task_to_exec();
+			schedue_del(task);
+
+			((int (*)(void *))task->func)(task->arg);
+		}
+
+		delt = schedue_first_task_delay();
+		if (delt < 0) {
+			return;
+		}
+
+		timer_set(env.th, &env.task_timer, delt);
 }
 
 int		afly_handler_event(stEvent_t *event) {
@@ -1059,6 +1085,13 @@ void afly_nxp_rpt_attrs() {
 	log_info("-");
 }
 
+
+static void subdev_timeout_func(void *arg) {
+	stSubDev_t *sd = (stSubDev_t*)arg;
+	sd->aset.lock.lock_status = 0;
+	int ret = linkkit_gateway_post_property_json_sync(sd->devid, "{\"LockState\": 0}", 10000);
+	log_info("post LockState propety(%d), ret:%d", 0,  ret);
+}
 void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 	/**
 	 * EVENT_NXP_NONE					= 0x00,
@@ -1147,6 +1180,15 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					je = json_object();			
 					json_object_set_new(je, "KeyID", json_string(KeyID));
 					json_object_set_new(je, "LockType", json_integer(passType));
+					
+					sd->aset.lock.lock_status = 1;
+					int ret = linkkit_gateway_post_property_json_sync(sd->devid, "{\"LockState\": 1 }", 10000);
+					log_info("post LockState propety(%d), ret:%d", 1,  ret);
+
+					schedue_add(&sd->task, 5000, subdev_timeout_func, sd);
+					int delt = schedue_first_task_delay();
+					timer_set(env.th, &env.task_timer, delt);
+
 				} else {
 					log_info("open door failed: passType(%d), time(%d),passId(%d)", 
 							passType, time, passId);

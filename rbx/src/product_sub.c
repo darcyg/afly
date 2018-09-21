@@ -75,13 +75,14 @@ static void product_sub_clr_id_after_load() {
 	}
 }
 
+
 static int product_sub_file_exsit(const char *file) {
 	if (access(file, F_OK) == 0) {
 		return 1;
 	}
 	return 0;
 }
-static int _product_sub_load_all(const char *db) {
+static int _product_sub_load_all(const char *db, void *fet) {
 	FILE *fp = fopen(db, "r");
 	if (fp == NULL) {
 		return -1;
@@ -119,11 +120,11 @@ int product_sub_save_all() {
 
 	return 0;
 }
-int product_sub_load_all(const char *db) {
+int product_sub_load_all(const char *db, void *fet) {
 	subdev_file = (char *)db;
 
 	if (product_sub_file_exsit(subdev_file)) {
-		return _product_sub_load_all(subdev_file);
+		return _product_sub_load_all(subdev_file, fet);
 	}
 	
 	memset(&subdevs[2], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 2);

@@ -1,10 +1,11 @@
 #ifndef __PRODUCT_SUB_H_
 #define __PRODUCT_SUB_H_
 
+#include "schedule.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 
 #define SUBDEV_RAND_BYTES	 (16)
@@ -54,12 +55,14 @@ typedef struct stSubDev {
 				int onoff;
 			} z3light;
 		} aset;
+
+		stSchduleTask_t task;
 } stSubDev_t;
 
 
 #define SD_OFF(m) ((int) (((stSubDev_t*)0)->m))
 
-int product_sub_load_all(const char *db);
+int product_sub_load_all(const char *db, void *fet);
 //int product_sub_save_all();
 //int product_sub_load(stSubDev_t *sd, int off, int size);
 int product_sub_save(stSubDev_t *sd, int off, int size);

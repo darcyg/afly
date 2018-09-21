@@ -30,6 +30,8 @@ typedef struct stAFlyEnv {
 	stLockQueue_t msgq;
 
 	stGateway_t gw;
+
+	struct timer task_timer;
 }stAFlyEnv_t;
 
 
@@ -47,6 +49,7 @@ int		afly_push_msg(int eid, void *param, int len);
 int		afly_step();
 void	afly_handler_run(struct timer *timer);
 void	afly_handler_sync_list_run(struct timer *timer);
+void	afly_handler_task_run(struct timer *timer);
 
 void	afly_pipe_in(void *arg, int fd);
 

@@ -68,6 +68,7 @@ aflysrcs		+= $(ROOTDIR)/rbx/src/platform.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/nxpx.c
 #aflysrcs		+= $(ROOTDIR)/rbx/src/zigbee.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/uproto.c
+aflysrcs		+= $(ROOTDIR)/rbx/src/schedule.c
 
 aflysrcs		+= $(ROOTDIR)/ilop_sdk/src/hal/base64.c  
 aflysrcs		+= $(ROOTDIR)/ilop_sdk/src/hal/HAL_Crypt_Linux.c  
