@@ -33,6 +33,7 @@ static stAFlyEnv_t env = {0};
 
 static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
 static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
+static int gateway_clr_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
 
 static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx);
 static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
@@ -40,6 +41,7 @@ static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void
 static stAflyService_t svrs[] = {
 	{ "GW",		"1000", "AddSubDev",	gateway_add_subdev  },
 	{ "GW",		"1000", "DelSubDev",	gateway_del_subdev  },
+	{ "GW",		"1000", "ClrSubDev",	gateway_clr_subdev  },
 
 	{ "NXP",	"1203", "AddKey",			subdev_add_key },
 	{ "NXP",	"1203", "DeleteKey",	subdev_del_key },
@@ -161,14 +163,162 @@ static stAflyService_t *afly_search_service(char *app, char *model, char *identi
 ///////////////////////////// AFly Lock Callback //////////////////////////////////////////////
 static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
+
+	stSubDev_t *sd = (stSubDev_t *)ctx;
+
+
+	json_error_t error;
+	json_t *jin = json_loads(in, 0, &error);
+	if (jin == NULL) {
+		log_warn("error json format!!!");
+		return -1;
+	}
+
+
+	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
+	int UserLimit = -1;	json_get_int(jin, "UserLimit", &UserLimit);
+	const char *KeyStr = json_get_string(jin, "KeyStr");
+	int Start = -1;			json_get_int(jin, "Start", &Start);
+	int End = -1;				json_get_int(jin, "End", &End);
+
+	if (LockType != 2) {
+		log_warn("now only support pass type!");
+		json_decref(jin);
+		return -2;
+	}
+	if (UserLimit != 1) {
+		log_warn("now only support normal user!");
+		json_decref(jin);
+		return -3;
+	}
+
+	if (!product_valid_password_string(KeyStr)) {
+		log_warn("not valid key String");
+		json_decref(jin);
+		return -4;
+	}
+
+	
+	int len = strlen(KeyStr);
+	stLockKey_t *key = product_sub_lock_add_key_wait_ack(sd, LockType, UserLimit, (char *)KeyStr, len);
+	if (key == NULL) {
+		log_warn("full password!!!");
+		json_decref(jin);
+		return -5;
+	}
+
+	if (LockType == 2) {
+		int passId = atoi(KeyStr);
+		nxp_lock_add_pass(key->id, 0, 0, Start, End, (char *)&passId, 4);
+	} 
+
+
+	json_decref(jin);
+	
 	return 0;
 }
 static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
+
+	stSubDev_t *sd = (stSubDev_t *)ctx;
+
+
+	json_error_t error;
+	json_t *jin = json_loads(in, 0, &error);
+	if (jin == NULL) {
+		log_warn("error json format!!!");
+		return -1;
+	}
+
+	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
+	const char *KeyID = json_get_string(jin, "KeyID");
+
+	if (LockType != 2) {
+		json_decref(jin);
+		log_warn("now only support pass type!");
+		return -2;
+	}
+
+	int id = atoi(KeyID);
+	if (id < 10000) {
+		json_decref(jin);
+		log_warn("invalid Key ID");
+		return -3;
+	}
+
+	
+	stLockKey_t *key = product_sub_lock_get_key_by_id(sd, LockType, id);
+	if (key == NULL) {
+		json_decref(jin);
+		log_warn("no such key:%d", id);
+		return -4;
+	}
+
+	
+	if (LockType == 2) {
+		nxp_lock_del_pass(key->id, 0);
+	}
+	
+	json_decref(jin);
 	return 0;
 }
 static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
+
+	stSubDev_t *sd = (stSubDev_t *)ctx;
+
+
+	json_error_t error;
+	json_t *jin = json_loads(in, 0, &error);
+	if (jin == NULL) {
+		log_warn("error json format!!!");
+		return -1;
+	}
+
+	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
+	if (LockType != 2) {
+		json_decref(jin);
+		log_warn("now only support pass type!");
+		return -2;
+	}
+	json_decref(jin);
+
+	json_t *jout = json_array();
+	
+	int num = product_sub_lock_get_key_num(sd, LockType);
+	int i = 0; 
+	for (i = 0; i < num; i++) {
+		json_t *ji = json_object();
+		stLockKey_t *key = product_sub_lock_get_key_i(sd, i, LockType);
+		
+		json_object_set_new(ji, "LockType", json_integer(key->type));	
+		json_object_set_new(ji, "UserLimit", json_integer(key->limit));
+
+		char KeyStr[64]; snprintf(KeyStr, key->len, "%s", key->buf);
+		json_object_set_new(ji, "KeyID", json_string(KeyStr));
+
+		char KeyID[32]; sprintf(KeyID, "%d", key->id);
+		json_object_set_new(ji, "KeyStr", json_string(KeyID));
+
+		json_array_append_new(jout, ji);
+	}
+
+	const char *sout = json_dumps(jout, 0);
+	if (sout == NULL) {
+		json_decref(jout);
+		log_warn("no enough memory");
+		return -3;
+	}
+	
+	int len = strlen(sout);
+	if (len >= out_len) {
+		json_decref(jout);
+		return -4;
+	}
+	strcpy(out, sout);
+
+	json_decref(jout);
+
 	return 0;
 }
 
@@ -272,9 +422,8 @@ static int subdev_call_service(char *identifier, char *in, char *out, int out_le
 #endif
 
 	stSubDev_t *sd = (stSubDev_t*)ctx;
-	sd = sd;
 
-	stAflyService_t *svr = afly_search_service("GW", "1000", identifier);
+	stAflyService_t *svr = afly_search_service(sd->app, sd->type, identifier);
 	if (svr == NULL) {
 		log_warn("not support service : %s", identifier);
 		return -1;
@@ -405,6 +554,24 @@ static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void 
 
 	return -1;
 }
+
+static int gateway_clr_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
+	log_info("in: %s", in);
+
+
+	//stGateway_t *gw = (stGateway_t*)ctx;
+
+
+	int ret = product_sub_clr();
+	log_info("Clear SubDev %d", ret);
+	
+	if (ret != 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
 static int gateway_get_property(char *in, char *out, int out_len, void *ctx) {
 	log_info("in: %s", in);
 
@@ -964,42 +1131,42 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 			return;
 		}
 		log_info("create ret %d(%08x), devId -> ret -> %d", ret, ret, ret);
-
 		sd->devid = ret;
-		sd->battery = battery;
-		sd->online = online;
-		strcpy(sd->type, type);
-		strcpy(sd->version, version);
-		strcpy(sd->model, model);
-		strcpy(sd->app, "NXP");
-		sd->rssi = rssi;
 
-		ret = product_sub_save(sd, 0, sizeof(*sd));
-		if (ret != 0) {
-			log_warn("product_sub_save failed: %d", ret);
-		} 
+		log_info("New Sub Dev : ieee(%s), model(%s), id(%d)", name, model, sd->devid);
+	} 
 
-		log_info("New Sub Dev OK : ieee(%s), model(%s), id(%d)", name, model, sd->devid);
 
-		if (online) {
+	sd->battery = battery;
+	sd->online = online;
+	strcpy(sd->type, type);
+	strcpy(sd->version, version);
+	strcpy(sd->model, model);
+	strcpy(sd->app, "NXP");
+	sd->rssi = rssi;
+
+	int ret = product_sub_save(sd, 0, sizeof(*sd));
+	if (ret != 0) {
+		log_warn("product_sub_save failed: %d", ret);
+	} else {
+		log_info("Save New Data: %d", ret);
+	}
+
+
+	if (online) {
+		if (sd->login == 0) {
 			log_info("login...");
 			ret = linkkit_gateway_subdev_login(sd->devid);
+			log_info("login result is %d", ret);
 		} else {
-			log_info("login out...");
-			ret = linkkit_gateway_subdev_logout(sd->devid);
+			;
 		}
-		log_info("result is %d", ret);
 	} else {
-		sd->battery = battery;
-		sd->online = online;
-		strcpy(sd->type, type);
-		strcpy(sd->version, version);
-		strcpy(sd->model, model);
-		strcpy(sd->app, "NXP");
-		sd->rssi = rssi;
-
-		int ret = product_sub_save(sd, 0, sizeof(*sd));
-		log_info("Exsit Dev, Save New Data: %d", ret);
+		log_info("login out...");
+		if (sd->login != 0) {
+			ret = linkkit_gateway_subdev_logout(sd->devid);
+			log_info("login result is %d", ret);
+		}
 	}
 }
 
@@ -1009,6 +1176,11 @@ void afly_nxp_unreg(const char *name) {
 	stSubDev_t *sd = product_sub_search_by_name((char *)name);
 	if (sd == NULL) {
 		log_warn("not exsit dev: %s", name);
+		return;
+	}
+
+	if (sd->devid == 0) {
+		log_warn("not reigstered dev, !!!");
 		return;
 	}
 
@@ -1048,6 +1220,11 @@ void	afly_nxp_upt_online(const char *name, int online, const char *type, int bat
 		return;
 	}
 
+	if (sd->devid == 0) {
+		log_warn("not reigstered dev, !!!");
+		return;
+	}
+
 	sd->online = online;
 	//strcpy(sd->type, type);
 	sd->battery = battery;
@@ -1065,11 +1242,19 @@ void	afly_nxp_upt_online(const char *name, int online, const char *type, int bat
 
 	int ret = 0;
 	if (sd->online) {
-		log_info("login ...");
-		ret = linkkit_gateway_subdev_login(sd->devid);
+		if (sd->login == 0) {
+			log_info("login ...");
+			ret = linkkit_gateway_subdev_login(sd->devid);
+		} else {
+			;
+		}
 	} else {
-		log_info("login out...");
-		ret = linkkit_gateway_subdev_logout(sd->devid);
+		if (sd->login != 0) {
+			log_info("login out...");
+			ret = linkkit_gateway_subdev_logout(sd->devid);
+		} else {
+			;
+		}
 	}
 
 	log_info("upt online(login) ret:%d(%08X)", ret, ret);
@@ -1166,15 +1351,32 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 				int passId = p[3];
 				//int passVal1 = p[4];
 
-				char sKeyID[32]; sprintf(sKeyID, "%d", passId);
-				passType = 2;
+				int type = 0;
+				if (passType == 0) { //暂时只支持密码类型
+					type = 2;
+				} else if (passType == 11) { // 卡 
+					type = 3;
+				} else if (passType == 21) { // 指纹
+					type = 1;
+				} else {
+					log_warn("not support check record type!");
+					return;
+				};
 
-				char *KeyID = "*";
+				stLockKey_t *key = product_sub_lock_get_key_by_id(sd, type, passId);
+				if (key == NULL || key->key_state != KEY_STATE_ADDED) {
+					log_warn("not found key in gateway!!");
+					return;
+				}
+
+				char KeyID[32]; sprintf(KeyID, "%d", key->id);
+				int LockType = type;
+
 				if (pass == 1) {
 					identifier = "DoorOpenNotification";
 					je = json_object();			
 					json_object_set_new(je, "KeyID", json_string(KeyID));
-					json_object_set_new(je, "LockType", json_integer(passType));
+					json_object_set_new(je, "LockType", json_integer(LockType));
 					
 					sd->aset.lock.lock_status = 1;
 					int ret = linkkit_gateway_post_property_json_sync(sd->devid, "{\"LockState\": 1 }", 10000);
@@ -1185,8 +1387,8 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					timer_set(env.th, &env.task_timer, delt);
 
 				} else {
-					log_info("open door failed: passType(%d), time(%d),passId(%d)", 
-							passType, time, passId);
+					log_info("open door failed: LockType(%d), time(%d), KeyID(%s)", 
+							LockType, time, KeyID);
 				}
 			}
 			break;
@@ -1199,26 +1401,51 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 				int passId = p[1];
 				int code = p[2];
 
-				int passType = 2;
-				char *KeyID = "*";
-				int UserLimit = 1;
+				int type = 0;
+				if (passId >= 20000 && passId < 30000) { //暂时只支持密码类型
+					type = 2;
+				} else if (passId >= 30000 && passId < 40000) { // 卡 
+					type = 3;
+				} else if (passId >= 10000 && passId < 20000) { // 指纹
+					type = 1;
+				} else {
+					log_warn("not support check record type!");
+					return;
+				};
+
+				stLockKey_t *key = product_sub_lock_get_key_by_id(sd, type, passId);
+				if (key == NULL) {
+					log_warn("not found key in gateway!!");
+					return;
+				}
+				if (!( (key->key_state == KEY_STATE_ADDING && op == 1) ||
+							 (key->key_state == KEY_STATE_ADDED  && op == 0) ) ){
+					log_warn("not correct pass add/devl operation, op:%d, passId:%d, code:%d", op, passId, code);
+					return;
+				}
+
+				char KeyID[32]; sprintf(KeyID, "%d", passId);
+				int LockType = type;
+				int UserLimit = key->limit;
+				char KeyStr[64]; snprintf(KeyStr, key->len, "%s", key->buf);
+				
 
 				if (code == 0) {
 					if (op == 1) {
 						identifier = "KeyAddedNotification";
 						je = json_object();			
-						json_object_set_new(je, "KeyID", json_string(KeyID));
-						json_object_set_new(je, "LockType", json_integer(passType));
-						json_object_set_new(je, "UserLimit", json_integer(UserLimit));
-
+						json_object_set_new(je, "KeyID",		json_string(KeyID));
+						json_object_set_new(je, "LockType", json_integer(LockType));
+						json_object_set_new(je, "UserLimit",json_integer(UserLimit));
+						json_object_set_new(je, "UserStr",	json_string(KeyStr));
 					} else if (op == 0) {
 						identifier = "KeyDeletedNotification";
 						je = json_object();			
 						json_object_set_new(je, "KeyID", json_string(KeyID));
-						json_object_set_new(je, "LockType", json_integer(passType));
+						json_object_set_new(je, "LockType", json_integer(LockType));
 					}
 				} else {
-					log_info("add/del pass failed: op:%d, passId:%d", op, passId);
+					log_info("add/del pass failed: op:%d, LockType:%d, KeyID:%s", op, LockType, KeyID);
 				}
 
 			}

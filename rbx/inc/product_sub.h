@@ -13,21 +13,29 @@ extern "C" {
 #define MAX_SUB_DEV       (40)
 
 
+enum {
+	KEY_STATE_NONE		= 0x00,	// no use
+	KEY_STATE_ADDING	= 0x01, // 
+	KEY_STATE_ADDED	  = 0x02,	//
+};
+
 typedef struct stLockKey {
 	/**> use flash addr to id */
-	int		use;
+	int		last;
+	int		key_state;
+	int		id;
 	int		type;						//1 -> fing, 2->pass, 3->card, 4->hardkey
 	int		limit;					//1 -> normal, 2->admin, 3->hijacking
 	int		len;						//pass->6~16, card->4 , 8, 12, fing->810+
-	char	buf[16];
+	char	buf[32];
 } stLockKey_t;
 
 
 typedef struct stSubDev {
 		int use;
-		char mac[8];
 
     int  devid;
+		int  login;
     char productKey[32];
     char deviceName[64];  // mac
     char deviceSecret[64];
@@ -50,7 +58,7 @@ typedef struct stSubDev {
 				int cardAll;
 				int fingNum;
 				int fingAll;
-				stLockKey_t keys[100];
+				stLockKey_t keys[3][128];
 			} lock;
 			struct {
 				int onoff;
@@ -76,16 +84,23 @@ int product_sub_empty(stSubDev_t *sd);
 
 int product_sub_add(const char *name, const char *key, const char *secret);
 int product_sub_del(const char *name);
+int product_sub_clr();
 int product_sub_get_num();
 stSubDev_t *product_sub_get_i(int i);
 
 int product_sub_lock_get_lock_status();
 int product_sub_lock_set_lock_status();
-int product_sub_lock_get_key_num();
-stLockKey_t *product_sub_lock_get_key_i(stSubDev_t *sd, int i);
-int product_sub_lock_add_key(stSubDev_t *sd, int type, int limit, char *buf, int len);
-int product_sub_lock_del_key(stSubDev_t *sd, int type, int limit, char *buf, int len);
-int product_sub_lock_clr_key();
+
+int product_sub_lock_get_key_num(stSubDev_t *sd, int type);
+stLockKey_t *product_sub_lock_get_key_i(stSubDev_t *sd, int i, int type);
+stLockKey_t *product_sub_lock_add_key_wait_ack(stSubDev_t *sd, int type, int limit, char *buf, int len);
+int product_sub_lock_add_key_complete(stSubDev_t *sd, int type, int id);
+int product_sub_lock_del_key(stSubDev_t *sd, int type, int id);
+int product_sub_lock_clr_key(stSubDev_t *sd, int type);
+
+stLockKey_t *product_sub_lock_get_key_by_id(stSubDev_t *sd, int type, int id);
+
+
 
 int product_sub_z3light_get_onoff(stSubDev_t *sd);
 int product_sub_z3light_set_onoff(stSubDev_t *sd, int onoff);
@@ -95,6 +110,9 @@ stSubDev_t *product_sub_search_by_devid(int devid);
 stSubDev_t *product_sub_search_by_name(const char *name);
 
 void product_sub_view();
+
+
+int product_valid_password_string(const char *s);
 
 #ifdef __cplusplus
 }

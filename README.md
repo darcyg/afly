@@ -15,11 +15,11 @@
 	...  
 
 # Developing:  
-	1. product_sub & product module   [ok]  
-	3. ubus proto -> afly module [ok]
-	3. device reg->create->login->unlogin->destroy->unreg  
+	1. product_sub & product module   [ok wait test]  
+	3. ubus proto -> afly module [ok wait test]
+	3. device reg->create->login->unlogin->destroy->unreg [ok wait test]
 	4. dev sevice framework  add pass/del pass/storage pass  
-	5. report  
+	5. report [ok wait test]
 	6. sdk watch
 	7. add product & del product link debug    
 	8. 网关更新nxp程序,基线和旧版本不一样

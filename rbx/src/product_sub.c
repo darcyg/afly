@@ -10,7 +10,6 @@ static char *subdev_file = "/etc/config/dusun/afly/subdev.db";
 static stSubDev_t subdevs[MAX_SUB_DEV] = {
 	[0] =  {
 		.use = 1,
-		.mac = {},
 		.devid = 0,
 		.productKey = "a1wcKZILMWO",
 		.deviceName = "L92bxAd5sgKQg20K2LLF",
@@ -26,7 +25,6 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {
 	},
 	[1] =  {
 		.use = 1,
-		.mac = {},
 		.devid = 0,
 		.productKey = "a1wcKZILMWO",
 		.deviceName = "00158d00026c540a",
@@ -71,6 +69,7 @@ static void product_sub_clr_id_after_load() {
 			continue;
 		}
 
+		sd->login = 0;
 		sd->devid = 0;
 	}
 }
@@ -88,6 +87,7 @@ static int _product_sub_load_all(const char *db, void *fet) {
 		return -1;
 	}
 	
+	fseek(fp, 0, SEEK_SET);
 	int ret = fread(&subdevs[0], sizeof(subdevs), 1, fp);
 	
 	if (ret != 1) {
@@ -109,6 +109,7 @@ int product_sub_save_all() {
 		return -1;
 	}
 	
+	fseek(fp, 0, SEEK_SET);
 	int ret = fwrite(&subdevs[0], sizeof(subdevs), 1, fp);
 	
 	if (ret != 1) {
@@ -219,8 +220,8 @@ int product_sub_sget(stSubDev_t *sd, int off, int size, char *buf) {
 
 
 int product_sub_empty(stSubDev_t *sd) {
-	sd->mac[0] = 0;
 	sd->devid = 0;
+	sd->login = 0;
 	memset(&sd->battery, 0, (unsigned int)(sd + 1) - (unsigned int)&sd->battery);
 	return 0;
 }
@@ -285,6 +286,7 @@ int product_sub_add(const char *name, const char *key, const char *secret) {
 	strcpy(dev->deviceName, name);
 	
 	dev->devid = 0;
+	dev->login = 0;
 	dev->battery = 0;
 	dev->online = 0;
 	dev->type[0] = 0;
@@ -308,6 +310,12 @@ int product_sub_del(const char *name) {
 	product_sub_save(dev, 0, sizeof(*dev));
 
 	return 0;
+}
+
+
+int product_sub_clr() {
+	memset(&subdevs[0], 0, sizeof(subdevs));
+	return product_sub_save_all(subdev_file);
 }
 
 int product_sub_get_num() {
@@ -364,6 +372,7 @@ void product_sub_view() {
 		
 		log_info("deviceName:%s, online:%d",sd->deviceName, sd->online );
 		log_info("\t   devid: %d", sd->devid);
+		log_info("\t   login: %d", sd->login);
 		log_info("\t   roductKey: %s", sd->productKey);
 		log_info("\t   deviceSecret: %s", sd->deviceSecret);
 		log_info("\t   battery: %d", sd->battery);
@@ -376,7 +385,6 @@ void product_sub_view() {
 
 }
 
-
 int product_sub_lock_get_lock_status(stSubDev_t *sd) {
 	return sd->aset.lock.lock_status;
 }
@@ -384,13 +392,16 @@ int product_sub_lock_set_lock_status(stSubDev_t *sd, int status) {
 	sd->aset.lock.lock_status = status;
 	return 0;
 }
-int product_sub_lock_get_key_num(stSubDev_t *sd) {
-	int i = 0;
-	int cnt = sizeof(sd->aset.lock.keys)/sizeof(sd->aset.lock.keys[0]);
+int product_sub_lock_get_key_num(stSubDev_t *sd, int type) {
+
+	int adx = (type + (3-1))%3 + 1;
+	
+	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	int num = 0;
+	int i = 0;
 	for (i = 0; i < cnt; i++) {
-		stLockKey_t *key = &sd->aset.lock.keys[i];
-		if (!key->use) {
+		stLockKey_t *key = &sd->aset.lock.keys[adx][i];
+		if (!(key->key_state == KEY_STATE_ADDED)) {
 			continue;
 		}
 		num++;
@@ -399,18 +410,21 @@ int product_sub_lock_get_key_num(stSubDev_t *sd) {
 	return num;
 }
 
-stLockKey_t *product_sub_lock_get_key_i(stSubDev_t *sd, int i) {
-	int num = product_sub_lock_get_key_num(sd);
-	if (!(i >= 0 && i < num - 1)) {
+stLockKey_t *product_sub_lock_get_key_i(stSubDev_t *sd, int i, int type) {
+	int num = product_sub_lock_get_key_num(sd, type);
+
+	if (!(i >= 0 && i < num)) {
 		return NULL;
 	}
 
+	int adx = (type + (3-1))%3 + 1;
+
 	int j = 0;
-	int cnt = sizeof(sd->aset.lock.keys)/sizeof(sd->aset.lock.keys[0]);
+	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	int idx = 0;
 	for (j = 0; j < cnt; j++) {
-		stLockKey_t *key = &sd->aset.lock.keys[j];
-		if (!key->use) {
+		stLockKey_t *key = &sd->aset.lock.keys[adx][j];
+		if (!(key->key_state == KEY_STATE_ADDED)) {
 			continue;
 		}
 		if (idx != i) {
@@ -424,45 +438,89 @@ stLockKey_t *product_sub_lock_get_key_i(stSubDev_t *sd, int i) {
 	return NULL;
 }
 
-int product_sub_lock_add_key(stSubDev_t *sd, int type, int limit, char *buf, int len) {
-	int num = product_sub_lock_get_key_num(sd);
-	if (num >= sizeof(sd->aset.lock.keys) ) {
-		return -1;
+stLockKey_t *product_sub_lock_add_key_wait_ack(stSubDev_t *sd, int type, int limit, char *buf, int len) {
+	int num = product_sub_lock_get_key_num(sd, type);
+	int adx = (type + (3-1))%3 + 1;
+	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
+		
+	if (!(num >= 0 && num < cnt)) {
+		return NULL;
 	}
 
 	int j = 0;
-	int cnt = sizeof(sd->aset.lock.keys)/sizeof(sd->aset.lock.keys[0]);
-	stLockKey_t *key = &sd->aset.lock.keys[j];
+	stLockKey_t *key = NULL;
 	for (j = 0; j < cnt; j++) {
-		stLockKey_t *k = &sd->aset.lock.keys[j];
-		if (k->use) {
+		stLockKey_t *k = &sd->aset.lock.keys[adx][j];
+		if (k->key_state != KEY_STATE_NONE) {
 			continue;
 		}
+
 		key = k;
 		break;
 	}
 
-	key->use = 1;
-	key->type = type;
+	if (key == NULL) {
+		return NULL;
+	}
+
+	key->key_state = KEY_STATE_ADDING;
+
+	key->last = time(NULL);
+	key->id   = 10000 * type + j;
+	key->type	= type;
 	key->limit = limit;
-	memcpy(key->buf, buf, len);
+	key->len = len;
+	memcpy(key->buf, buf, len > sizeof(key->buf) ? sizeof(key->buf) : len);
+
+	return key;
+}
+
+int product_sub_lock_add_key_complete(stSubDev_t *sd, int type, int id) {
+	//int num = product_sub_lock_get_key_num(sd, type);
+
+	int adx = (type + (3-1))%3 + 1;
+
+	int j = 0;
+	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
+	stLockKey_t *key = NULL;
+	for (j = 0; j < cnt; j++) {
+		stLockKey_t *k = &sd->aset.lock.keys[adx][j];
+		if (k->key_state != KEY_STATE_ADDING) {
+			continue;
+		}
+		if (k->id != id) {
+			continue;
+		}
+
+		key = k;
+		break;
+	}
+
+	if (key == NULL) {
+		return -1;
+	}
+
+	key->key_state = KEY_STATE_ADDED;
 
 	return 0;
 }
-int product_sub_lock_del_key(stSubDev_t *sd, int type, int limit, char *buf, int len) {
+
+int product_sub_lock_del_key(stSubDev_t *sd, int type, int id) {
 	int j = 0;
-	int cnt = sizeof(sd->aset.lock.keys)/sizeof(sd->aset.lock.keys[0]);
+
+	int adx = (type + (3-1))%3 + 1;
+	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	stLockKey_t *key_del = NULL;
 	for (j = 0; j < cnt; j++) {
-		stLockKey_t *key = &sd->aset.lock.keys[j];
-		if (!key->use) {
+		stLockKey_t *key = &sd->aset.lock.keys[adx][j];
+		if (!key->key_state == KEY_STATE_ADDED) {
 			continue;
 		}
 
-		if (!(key->len == len && memcmp(key->buf, buf, len) == 0)) {
+		if (key->id != id) {
 			continue;
 		}
-		
+
 		key_del = key;
 		break;
 	}
@@ -471,27 +529,46 @@ int product_sub_lock_del_key(stSubDev_t *sd, int type, int limit, char *buf, int
 		return -1;
 	}
 
-	key_del->use = 0;
+	key_del->key_state = KEY_STATE_NONE;
 	memset(key_del, 0, sizeof(*key_del));
 
 	return 0;
 }
 
-int product_sub_lock_clr_key(stSubDev_t *sd) {
+int product_sub_lock_clr_key(stSubDev_t *sd, int type) {
 	int j = 0;
-	int cnt = sizeof(sd->aset.lock.keys)/sizeof(sd->aset.lock.keys[0]);
-	stLockKey_t *key_del = NULL;
+	int adx = (type + (3-1))%3 + 1;
+	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	for (j = 0; j < cnt; j++) {
-		stLockKey_t *key = &sd->aset.lock.keys[j];
-		if (!key->use) {
+		stLockKey_t *key = &sd->aset.lock.keys[adx][j];
+		if (key->key_state == KEY_STATE_NONE) {
 			continue;
 		}
 
-		key_del->use = 0;
-		memset(key_del, 0, sizeof(*key_del));
+		key->key_state = KEY_STATE_NONE;
+		memset(key, 0, sizeof(*key));
 	}
 
 	return 0;
+}
+
+stLockKey_t *product_sub_lock_get_key_by_id(stSubDev_t *sd, int type, int id) {
+	int j = 0;
+	int adx = (type + (3-1))%3 + 1;
+	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
+	stLockKey_t *key = NULL;
+	for (j = 0; j < cnt; j++) {
+		stLockKey_t *key = &sd->aset.lock.keys[adx][j];
+		if (key->key_state == KEY_STATE_NONE) {
+			continue;
+		}
+
+		if (key->id != id) {
+			continue;
+		}
+	}
+
+	return key;
 }
 
 int product_sub_z3light_get_onoff(stSubDev_t *sd) {
@@ -503,4 +580,21 @@ int product_sub_z3light_set_onoff(stSubDev_t *sd, int onoff) {
 }
 
 
+
+int product_valid_password_string(const char *s) {
+	int len = strlen(s);
+
+	if (!(len >= 6 && len <= 15)) {
+		return 0;
+	}
+
+	int i = 0;
+	for (i = 0; i < len; i++) {
+		if (!(s[i] >= '0' && s[i] <= '9')) {
+			return 0;
+		}
+	}
+
+	return 1;
+}
 
