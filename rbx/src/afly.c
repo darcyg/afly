@@ -1129,7 +1129,19 @@ void	afly_z3_rpt_event(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char e
 }
 
 
+
 // NXP
+
+static afly_nxp_report_all_status(stSubDev_t *sd) {
+	sd->aset.lock.lock_status = 0;
+	
+	json_t *jarg = json_object();
+	json_object_set_new(jarg, "BatteryPercentage", "LockState":"", "LinkType":"", "Version":"", "Model":"",);
+	int ret = linkkit_gateway_post_property_json_sync(sd->devid, "{\"LockState\": 0}", 10000);
+	log_info("post LockState propety(%d), ret:%d", 0,  ret);
+}
+
+
 void  afly_nxp_reg(const char *name, const char *model, const char *type, const char *version, int battery, int online, int rssi) {
 	log_info("register %s, model:%s, type:%s, version:%s, battery:%d, online:%d, rssi:%d", 
 			name, model, type, version, battery, online, rssi);
@@ -1284,6 +1296,8 @@ void	afly_nxp_upt_online(const char *name, int online, const char *type, int bat
 			log_info("login ...");
 			ret = linkkit_gateway_subdev_login(sd->devid);
 			sd->login = ret == 0 ? 1 : 0;
+
+
 		} else {
 			;
 		}
