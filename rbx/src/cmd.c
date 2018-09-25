@@ -26,17 +26,30 @@ void do_cmd_getattr(char *argv[], int argc);
 void do_cmd_setattr(char *argv[], int argc);
 void do_cmd_zclcmd(char *argv[], int argc);
 
+
+void do_cmd_add(char *argv[], int argc);
+void do_cmd_del(char *argv[], int argc);
+void do_cmd_glist(char *argv[], int argc);
+void do_cmd_clr(char *argv[], int argc);
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
 	{"help", do_cmd_help, "help info"},
 
-	{"info",		do_cmd_info,		"query zigbee network info : info"},
 	{"list",		do_cmd_list,		"list all zigbee devices : list"},
+
+	{"add",			do_cmd_add,			"add sub dev config"},
+	{"del",			do_cmd_del,			"del sub dev config"},
+	{"glist",		do_cmd_glist,		"post sub dev list"},
+	{"clr",			do_cmd_clr,			"clr sub dev"},
+
+	/*
+	{"info",		do_cmd_info,		"query zigbee network info : info"},
 	{"permit",	do_cmd_permit,	"open zigbee network : permit <duration>"},
 	{"remove",	do_cmd_remove,	"remove a zigbee device : remove <extaddr>"},
 	{"getattr",	do_cmd_getattr,	"get a cluster attr : getattr <extaddr> <ep> <attrname>"},
 	{"setattr",	do_cmd_setattr,	"set a cluster attr : setattr <extaddr> <ep> <attrname> <attrvalue>"},
 	{"zclcmd",	do_cmd_zclcmd,	"zcl command : zclcmd <extaddr> <ep> <cmdname> <cmdargs>"},
+	*/
 };
 
 static stCmdEnv_t ce;
@@ -217,4 +230,38 @@ void do_cmd_zclcmd(char *argv[], int argc) {
 
 }
 
+
+void do_cmd_add(char *argv[], int argc) { 
+	json_t *jin = json_object();
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c540a\", \"productKey\":\"3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1\", \"deviceSecret\":\"a1wcKZILMWO\" }]"));
+
+	char *sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		gateway_add_subdev(NULL, sin, buf, sizeof(buf), product_get_gw());
+		free(sin);
+	}
+
+	json_decref(jin);
+}
+
+void do_cmd_del(char *argv[], int argc) {
+	json_t *jin = json_object();
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c540a\", \"productKey\":\"3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1\", \"deviceSecret\":\"a1wcKZILMWO\" }]"));
+
+	char *sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		gateway_del_subdev(NULL, sin, buf, sizeof(buf), product_get_gw());
+		free(sin);
+	}
+
+	json_decref(jin);
+}
+void do_cmd_glist(char *argv[], int argc) {
+	log_warn("not support now !");
+}
+void do_cmd_clr(char *argv[], int argc) {
+	gateway_clr_subdev(NULL, "", NULL, 0, product_get_gw());
+}
 

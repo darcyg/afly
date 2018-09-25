@@ -31,9 +31,9 @@ void _afly_end();
 static stAFlyEnv_t env = {0};
 
 
-static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
-static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
-static int gateway_clr_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
+int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
+int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
+int gateway_clr_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
 
 static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx);
 static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
@@ -54,6 +54,8 @@ int		afly_init(void *_th, void *_fet, int loglvl, char *dbfile) {
 	env.fet = _fet;
 
 	product_sub_load_all(dbfile, _fet);
+	product_sub_view();
+
 
 	timer_init(&env.step_timer, afly_handler_run);
 	timer_init(&env.sync_list_timer, afly_handler_sync_list_run);
@@ -462,7 +464,7 @@ static void ota_callback(int event, const char *version, void *ctx) {
 }
 
 ///////////////////////////// AFly Callback //////////////////////////////////////////////////////////
-static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
+int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in: %s", in);
 
 	//stGateway_t *gw = (stGateway_t*)ctx;
@@ -474,16 +476,28 @@ static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void 
 		return -1;
 	}
 
-	json_t *jlist = json_object_get(jin, "SubDevList");
-	if (jlist == NULL) {
+	const char *slist = json_get_string(jin, "SubDevList");
+	if (slist == NULL) {
+		log_warn("Can't find SubDevList Item");
 		json_decref(jin);
 		return -2;
 	}
 
-	if (json_is_array(jlist)) {
+	json_t *jlist = json_loads(slist, 0, &error);
+	if (jlist == NULL) {
+		log_warn("SubDevList format error");
 		json_decref(jin);
 		return -3;
 	}
+
+
+	if (!json_is_array(jlist)) {
+		log_warn("SubDevList is not jarray");
+		json_decref(jin);
+		return -4;
+	}
+
+
 
 	size_t  i		= 0;
 	json_t *jv	= NULL;
@@ -492,6 +506,12 @@ static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void 
 		const char *key  = json_get_string(jv, "deviceSecret");
 		const char *sec  = json_get_string(jv, "productKey");
 		if (name == NULL || key == NULL || sec == NULL) {
+			continue;
+		}
+
+		stSubDev_t *sd = product_sub_search_by_name(name);
+		if (sd != NULL) {
+			log_warn("Exsit Dev : %s", name);
 			continue;
 		}
 
@@ -508,7 +528,7 @@ static int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void 
 
 	return 0;
 }
-static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
+int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in: %s", in);
 
 	//stGateway_t *gw = (stGateway_t*)ctx;
@@ -520,15 +540,25 @@ static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void 
 		return -1;
 	}
 
-	json_t *jlist = json_object_get(jin, "SubDevList");
-	if (jlist == NULL) {
+	const char *slist = json_get_string(jin, "SubDevList");
+	if (slist == NULL) {
+		log_warn("Can't find SubDevList Item");
 		json_decref(jin);
 		return -2;
 	}
 
-	if (json_is_array(jlist)) {
+	json_t *jlist = json_loads(slist, 0, &error);
+	if (jlist == NULL) {
+		log_warn("SubDevList format error");
 		json_decref(jin);
 		return -3;
+	}
+
+
+	if (!json_is_array(jlist)) {
+		log_warn("SubDevList is not jarray");
+		json_decref(jin);
+		return -4;
 	}
 
 	size_t  i		= 0;
@@ -538,6 +568,12 @@ static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void 
 		const char *key  = json_get_string(jv, "deviceSecret");
 		const char *sec  = json_get_string(jv, "productKey");
 		if (name == NULL || key == NULL || sec == NULL) {
+			continue;
+		}
+
+		stSubDev_t *sd = product_sub_search_by_name(name);
+		if (sd == NULL) {
+			log_warn("Not Exsit Dev : %s", name);
 			continue;
 		}
 
@@ -555,7 +591,7 @@ static int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void 
 	return -1;
 }
 
-static int gateway_clr_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
+int gateway_clr_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in: %s", in);
 
 
@@ -1158,6 +1194,7 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 			log_info("login...");
 			ret = linkkit_gateway_subdev_login(sd->devid);
 			log_info("login result is %d", ret);
+			sd->login = ret == 0 ? 1 : 0;
 		} else {
 			;
 		}
@@ -1166,6 +1203,7 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 		if (sd->login != 0) {
 			ret = linkkit_gateway_subdev_logout(sd->devid);
 			log_info("login result is %d", ret);
+			sd->login = ret == 0 ? 0 : 1;
 		}
 	}
 }
@@ -1245,6 +1283,7 @@ void	afly_nxp_upt_online(const char *name, int online, const char *type, int bat
 		if (sd->login == 0) {
 			log_info("login ...");
 			ret = linkkit_gateway_subdev_login(sd->devid);
+			sd->login = ret == 0 ? 1 : 0;
 		} else {
 			;
 		}
@@ -1252,6 +1291,7 @@ void	afly_nxp_upt_online(const char *name, int online, const char *type, int bat
 		if (sd->login != 0) {
 			log_info("login out...");
 			ret = linkkit_gateway_subdev_logout(sd->devid);
+			sd->login = ret == 0 ? 0 : 1;
 		} else {
 			;
 		}

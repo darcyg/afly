@@ -7,7 +7,8 @@
 
 
 static char *subdev_file = "/etc/config/dusun/afly/subdev.db";
-static stSubDev_t subdevs[MAX_SUB_DEV] = {
+static stSubDev_t subdevs[MAX_SUB_DEV] = {0
+#if 0
 	[0] =  {
 		.use = 1,
 		.devid = 0,
@@ -38,6 +39,7 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {
 		.app = "NXP",
 		.aset = {{0}},
 	},
+#endif
 
 };
 
@@ -48,6 +50,7 @@ static stSubDev_t *product_sub_malloc() {
 	for (i = 0; i < cnt; i++) {
 		stSubDev_t *sd = &subdevs[i];
 		if (sd->use == 0) {
+			sd->use = 1;
 			return sd;
 		}
 	}
@@ -91,6 +94,7 @@ static int _product_sub_load_all(const char *db, void *fet) {
 	int ret = fread(&subdevs[0], sizeof(subdevs), 1, fp);
 	
 	if (ret != 1) {
+		product_sub_clr_id_after_load();
 		fclose(fp);
 		return -2;
 	}

@@ -36,7 +36,7 @@ typedef struct stSubDev {
 
     int  devid;
 		int  login;
-    char productKey[32];
+    char productKey[48];
     char deviceName[64];  // mac
     char deviceSecret[64];
 
