@@ -17,12 +17,11 @@
 # Developing:  
 	1. product_sub & product module   [ok]  
 	3. ubus proto -> afly module [ok]
-	2. add product & del product link debug    
 	3. device reg->create->login->unlogin->destroy->unreg  
-	4. dev sevice framework  
-	5. add pass/del pass/storage pass  
-	6. report  
-	7. sdk watch
+	4. dev sevice framework  add pass/del pass/storage pass  
+	5. report  
+	6. sdk watch
+	7. add product & del product link debug    
 	8. 网关更新nxp程序,基线和旧版本不一样
 	9. json及内存泄露问题
 

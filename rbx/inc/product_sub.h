@@ -16,10 +16,10 @@ extern "C" {
 typedef struct stLockKey {
 	/**> use flash addr to id */
 	int		use;
-	int		type;
-	int		limit;
-	int		len;
-	char	buf[1024];
+	int		type;						//1 -> fing, 2->pass, 3->card, 4->hardkey
+	int		limit;					//1 -> normal, 2->admin, 3->hijacking
+	int		len;						//pass->6~16, card->4 , 8, 12, fing->810+
+	char	buf[16];
 } stLockKey_t;
 
 
