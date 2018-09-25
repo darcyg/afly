@@ -19,8 +19,9 @@ typedef struct stLockKey {
 	int		type;
 	int		limit;
 	int		len;
-	char	buf[16];
+	char	buf[1024];
 } stLockKey_t;
+
 
 typedef struct stSubDev {
 		int use;

@@ -637,6 +637,7 @@ static int rpt_register(const char *uuid, const char *cmdmac,  const char *attr,
 
 	const char *modelstr = json_get_string(value, "model");
 	int model = 0;
+	model = model;
 	if (modelstr != NULL) {
 		model = uproto_hexstr_to_int(modelstr);
 	}
@@ -649,12 +650,14 @@ static int rpt_register(const char *uuid, const char *cmdmac,  const char *attr,
 	}
 
 	const char *sign = NULL;
+	sign = sign;
 	const char *signstr	= json_get_string(value, "sign");
 	if (signstr != NULL) {
 		sign = signstr;
 	}
 
 	int supe = 0;
+	supe = supe;
 	const char *supestr = json_get_string(value, "supe");
 	if (supestr != NULL) {
 		supe = uproto_hexstr_to_int(supestr);
@@ -678,15 +681,6 @@ static int rpt_unregister(const char *uuid, const char *cmdmac,  const char *att
 	return 0;
 }
 
-static long schedue_current() {
-	struct timespec ts;
-
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-
-	return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-}
-
-
 static int rpt_online(const char *uuid, const char *cmdmac,  const char *attr, json_t *value) {
 	char *sval = json_dumps(value, 0);
 	log_info("[%d] uuid:%s, cmdmac:%s, attr:%s, value:%s", __LINE__, uuid, cmdmac, attr, sval);
@@ -706,6 +700,7 @@ static int rpt_online(const char *uuid, const char *cmdmac,  const char *attr, j
 	int now = schedue_current();
 
 	char online = !((now - last) > 1000*60*60*2);
+	online = online;
 
 	//zigbee_rpt_online(mac, online);
 
@@ -742,6 +737,7 @@ static int rpt_zclcmd(const char *uuid, const char *cmdmac,  const char *attr, j
 	}
 
 	char cmdid = buf[2]&0xff;
+	cmdid = cmdid;
 
 	//zigbee_rpt_event(ieee, ep, cluster, cmdid, buf + 3, len - 3);
 
@@ -779,6 +775,7 @@ static int rpt_atr(const char *uuid, const char *cmdmac,  const char *attr, json
 	}
 
 	short attrid = buf[0] | (buf[1] << 8);
+	attrid = attrid;
 
 	//zigbee_rpt_attrs(ieee, ep, cluster, attrid, buf + 3, len - 3);
 
@@ -986,7 +983,7 @@ static int rpt_nxp_status(const char *uuid, const char *cmdmac,  const char *att
 		int buf[2];
 		buf[0] = locked;
 		buf[1] = lowpower;
-		afly_nxp_rpt_event(name, EVENT_NXP_SYS_STATUS, buf, sizeof(buf));
+		afly_nxp_rpt_event(name, EVENT_NXP_SYS_STATUS, (char *)buf, sizeof(buf));
 	}
 
 	return 0;
