@@ -822,7 +822,7 @@ static int rpt_nxp_list(const char *uuid, const char *cmdmac,  const char *attr,
 			continue;
 		}
 
-		afly_nxp_reg(name, model, type, version, battery, online, rssi);
+		afly_nxp_reg(name, model, type, version, battery, online, rssi, 0);
 	}
 
 	return 0;
@@ -868,7 +868,7 @@ static int rpt_nxp_new_device_added(const char *uuid, const char *cmdmac,  const
 		return -1;
 	}
 
-	afly_nxp_reg(name, model, type, version, battery, online, rssi);
+	afly_nxp_reg(name, model, type, version, battery, online, rssi, 1);
 
 	
 	return 0;

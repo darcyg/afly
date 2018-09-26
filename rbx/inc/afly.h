@@ -73,7 +73,7 @@ enum {
 	EVENT_NXP_SYS_STATUS		= 0x07,
 };
 void afly_nxp_reg(const char *name, const char *model, const char *type,
-				 const char *version, int battery, int online, int rssi);
+				 const char *version, int battery, int online, int rssi, int dev_added);
 void afly_nxp_unreg(const char *name);
 void afly_nxp_upt_online(const char *name, int online, const char *type, int battery,
 					int passNum, int passAll, int cardNum, int cardAll, int fingNum, int fingAll, int rssi);

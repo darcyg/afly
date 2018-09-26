@@ -42,6 +42,7 @@ static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx
 static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
 static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx);
 static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx);
+static int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx);
 static stAflyService_t svrs[] = {
 	{ "GW",		"1000", "AddSubDev",	gateway_add_subdev  },
 	{ "GW",		"1000", "DelSubDev",	gateway_del_subdev  },
@@ -51,6 +52,7 @@ static stAflyService_t svrs[] = {
 	{ "NXP",	"1203", "AddKey",			subdev_add_key },
 	{ "NXP",	"1203", "DeleteKey",	subdev_del_key },
 	{ "NXP",	"1203",	"clearKey",		subdev_clr_key },
+	{	"NXP",	"1203",	"GetDynamic", subdev_get_dynamic},
 	{ "NXP",	"1203", "GetKeyList",	subdev_get_key_list },
 };
 
@@ -339,6 +341,19 @@ static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx
 
 	json_decref(jin);
 	return 0;
+}
+
+
+static int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx) {
+	log_info("in : %s", in);
+
+	stSubDev_t *sd = (stSubDev_t *)ctx;
+
+	/** TODO */
+	
+
+	return 0;
+
 }
 
 static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) {
@@ -1336,7 +1351,7 @@ static int afly_nxp_report_all_status(stSubDev_t *sd) {
 }
 
 
-void  afly_nxp_reg(const char *name, const char *model, const char *type, const char *version, int battery, int online, int rssi) {
+void  afly_nxp_reg(const char *name, const char *model, const char *type, const char *version, int battery, int online, int rssi, int dev_added) {
 	log_info("register %s, model:%s, type:%s, version:%s, battery:%d, online:%d, rssi:%d", 
 			name, model, type, version, battery, online, rssi);
 
@@ -1394,6 +1409,11 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 		log_info("Save New Data: %d", ret);
 	}
 
+	if (!sd->dynamic) {
+		nxp_lock_add_dynamic(const char *macstr);
+	}
+	
+
 
 	if (online) {
 		if (sd->login == 0) {
@@ -1401,11 +1421,6 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 			ret = linkkit_gateway_subdev_login(sd->devid);
 			log_info("login result is %d", ret);
 			sd->login = ret == 0 ? 1 : 0;
-			if (sd->login) {
-				afly_nxp_report_all_status(sd);
-			} else {
-				;
-			}
 		} else {
 			;
 		}
@@ -1415,13 +1430,17 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 			ret = linkkit_gateway_subdev_logout(sd->devid);
 			log_info("login result is %d", ret);
 			sd->login = ret == 0 ? 0 : 1;
-			if (sd->login) {
-				afly_nxp_report_all_status(sd);
-			} else {
-				;
-			}
 		}
 	}
+
+	if (sd->login) {
+		log_info("post %s all status...", sd->deviceName);
+		int ret = afly_nxp_report_all_status(sd);
+		log_info("post ret : %d", ret);
+	} else {
+		;
+	}
+
 }
 
 void afly_nxp_unreg(const char *name) {
@@ -1500,12 +1519,6 @@ void	afly_nxp_upt_online(const char *name, int online, const char *type, int bat
 			log_info("login ...");
 			ret = linkkit_gateway_subdev_login(sd->devid);
 			sd->login = ret == 0 ? 1 : 0;
-			if (sd->login) {
-				afly_nxp_report_all_status(sd);
-			} else {
-				;
-			}
-
 		} else {
 			;
 		}
@@ -1514,15 +1527,19 @@ void	afly_nxp_upt_online(const char *name, int online, const char *type, int bat
 			log_info("login out...");
 			ret = linkkit_gateway_subdev_logout(sd->devid);
 			sd->login = ret == 0 ? 0 : 1;
-			if (sd->login) {
-				afly_nxp_report_all_status(sd);
 			} else {
-				;
-			}
-		} else {
 			;
 		}
 	}
+
+	if (sd->login) {
+		log_info("post %s all status...", sd->deviceName);
+		int ret = afly_nxp_report_all_status(sd);
+		log_info("post ret : %d", ret);
+	} else {
+		;
+	}
+
 
 	log_info("upt online(login) ret:%d(%08X)", ret, ret);
 }

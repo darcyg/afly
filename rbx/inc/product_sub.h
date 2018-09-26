@@ -47,6 +47,9 @@ typedef struct stSubDev {
     char model[32];
 		char app[32];
 		int rssi;
+		int dynamic;
+		int seed;
+		int inteval;
 
 
 		union {

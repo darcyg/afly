@@ -76,7 +76,6 @@ int nxp_lock_add_pass(char *macstr, int id, int type, int suspend, int startTime
 		int count = ((buf[7]&0xff) << 24)  | ((buf[6]&0xff) << 16) | ((buf[5]&0xff) << 8) | ((buf[4]&0xff) << 0);
 		json_object_set_new(jarg, "passVal1", json_integer(val));
 		json_object_set_new(jarg, "passVal2", json_integer(count));
-
 	} 
 
 	json_t *jret = uproto_call(macstr, "device.lock.add_password", "setAttribute", jarg, 0);
