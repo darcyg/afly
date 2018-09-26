@@ -1,12 +1,16 @@
 #include "product.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "log.h"
 
 static stGateway_t gw = {
 	.ZB_Band = 2,
 	.ZB_Channel = 11,
-	.ZB_CO_MAC = "00158d0002010203",
-	.ZB_PAN_ID = "03AE",
-	.EXT_PAN_ID = "00158d0002010203",
-	.NETWORK_KEY = "0102030405060708090a0b0c0d0e0f",
+	.ZB_CO_MAC = "00158d0000******",
+	.ZB_PAN_ID = "30ae",
+	.EXT_PAN_ID = "00158d0000******",
+	.NETWORK_KEY = "********************************",
 
 	.connected =  0,
 
@@ -19,6 +23,58 @@ static stGateway_t gw = {
 	.product_secret = "a1q89CnOyZM",
 	.id = "238709",	
 };
+
+int product_init() {
+	// /etc/config/dusun/nxp/netinfo
+	//[Wed Sep 26 01:27:20 2018]: E_MSG_START_IND: pan_id: 40d2 coor_addr:30ae channel:15 status: 0
+	
+	log_info("---------------------------------------------");
+	
+	FILE *fp = fopen("/etc/config/dusun/nxp/netinfo", "r");
+	if (fp == 0) {
+		log_warn("can't open /etc/config/dusun/nxp/netinfo");
+		return -1;
+	}
+
+	char buf[1024];
+	char *p = fgets(buf, sizeof(buf), fp);
+	if (p == NULL) {
+		log_warn("fgets failed");
+		fclose(fp);
+		return -2;
+	}
+
+	log_info("Nxp Net Info: [%s]", buf);
+
+	
+
+	p = strstr(buf, "pan_id: ");
+	int flag = 0;
+	if (p != NULL) {
+		char buf[16];
+		strncpy(buf, p + strlen("pan_id: "), 5);
+		if (strcmp(gw.ZB_PAN_ID, buf) != 0) {
+			strncpy(gw.ZB_PAN_ID, p + strlen("pan_id: "), 5);
+			flag++;
+		}
+	}
+	p = strstr(buf, "channel:");
+	if (p != NULL) {
+		char buf[16];
+		strncpy(buf, p + strlen("channel:"), 3);
+		int ch = atoi(buf);
+
+		if (ch != gw.ZB_Channel) {
+			gw.ZB_Channel = ch;
+			flag++;
+		}
+	}
+
+	log_info("pan_id: %s, channel:%d", gw.ZB_PAN_ID, gw.ZB_Channel);
+	
+	
+	return flag;
+}
 
 stGateway_t *product_get_gw() {
 	return &gw;

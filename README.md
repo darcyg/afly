@@ -20,15 +20,16 @@
 	3. device reg->create->login->unlogin->destroy->unreg [ok ]
 	4. dev sevice framework  add pass/del pass/storage pass  [ok]
 	5. report [ok]
-	6. sdk watch
+	6. sdk watch [...]
 	7. add product & del product link debug [ok ]  
 	8. 网关更新nxp程序,基线和旧版本不一样
 	9. json及内存泄露问题
-	10. 增加回连
-	11. report 根据类型查找 
+	10. 增加回连 [ok ]
+	11. report 根据类型查找 [...]
 	12. 属性跟新的时候才上报或者才保存
 	13. cmd.c 当输入为是前缀空格的时候的 bug [ok]
 	14. 增加subdev的时候出发list上报 [ok]
+	15. 网关的默认模版参数上报, 解析获取默认参数 [ok]
 
 # Version:  
 	V1.0.0_afly_beta0:  

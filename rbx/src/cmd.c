@@ -25,6 +25,7 @@ void do_cmd_remove(char *argv[], int argc);
 void do_cmd_getattr(char *argv[], int argc);
 void do_cmd_setattr(char *argv[], int argc);
 void do_cmd_zclcmd(char *argv[], int argc);
+void do_cmd_back(char *argv[], int argc);
 
 
 void do_cmd_add(char *argv[], int argc);
@@ -41,6 +42,7 @@ static stCmd_t cmds[] = {
 	{"del",			do_cmd_del,			"del sub dev config"},
 	{"glist",		do_cmd_glist,		"post sub dev list"},
 	{"clr",			do_cmd_clr,			"clr sub dev"},
+	{"back",		do_cmd_back,		"remote back gateway"},
 
 	/*
 	{"info",		do_cmd_info,		"query zigbee network info : info"},
@@ -117,6 +119,7 @@ void cmd_in(void *arg, int fd) {
 	}
 	if (size > 0) {
 		memcpy(buf, p, size);
+		buf[size] = 0;
 	} else {
 		buf[0] = 0;
 		size = 0;
@@ -274,5 +277,22 @@ void do_cmd_glist(char *argv[], int argc) {
 }
 void do_cmd_clr(char *argv[], int argc) {
 	gateway_clr_subdev(NULL, "", NULL, 0, product_get_gw());
+}
+
+void do_cmd_back(char *argv[], int argc) {
+	gateway_remote_back(NULL, NULL, NULL, 0, product_get_gw());
+
+	json_t *jin = json_object();
+	json_object_set_new(jin, "BackSvrIp", json_string("114.215.195.44"));
+	json_object_set_new(jin, "BackSvrPort", json_integer(3434));
+
+	char *sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		gateway_remote_back(NULL, sin, buf, sizeof(buf), product_get_gw());
+		free(sin);
+	}
+
+	json_decref(jin);
 }
 

@@ -340,7 +340,7 @@ int product_sub_get_num() {
 }
 stSubDev_t *product_sub_get_i(int i) {
 	int num = product_sub_get_num();
-	if (!(i >= 0 && i < num - 1)) {
+	if (!(i >= 0 && i < num)) {
 		return NULL;
 	}
 
@@ -538,7 +538,7 @@ int product_sub_lock_del_key(stSubDev_t *sd, int type, int id) {
 	key_del->key_state = KEY_STATE_NONE;
 	memset(key_del, 0, sizeof(*key_del));
 
-	return 0;
+	return product_sub_save(sd, 0, sizeof(*sd));
 }
 
 int product_sub_lock_clr_key(stSubDev_t *sd, int type) {
@@ -553,6 +553,7 @@ int product_sub_lock_clr_key(stSubDev_t *sd, int type) {
 
 		key->key_state = KEY_STATE_NONE;
 		memset(key, 0, sizeof(*key));
+		product_sub_save(sd, 0, sizeof(*sd));
 	}
 
 	return 0;

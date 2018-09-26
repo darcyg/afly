@@ -29,6 +29,7 @@ typedef struct stGateway {
 
 stGateway_t *product_get_gw();
  
+int product_init();
 char *	product_get_hal_config_dir();
 char *	product_get_product_key_default();
 char *	product_get_device_name_default();
