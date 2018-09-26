@@ -347,7 +347,7 @@ static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx
 static int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
-	stSubDev_t *sd = (stSubDev_t *)ctx;
+	//stSubDev_t *sd = (stSubDev_t *)ctx;
 
 	/** TODO */
 	
@@ -1042,7 +1042,7 @@ static int post_all_properties(stGateway_t *gw) {
 
 	char buf[256];
 	sprintf(buf, "V%d.%d.%d", MAJOR, MINOR, PATCH);
-	json_object_set_new(jmsg, "Versin", json_string(buf));
+	json_object_set_new(jmsg, "Version", json_string(buf));
 
 	char *smsg = json_dumps(jmsg, 0);
 	if (smsg == NULL) {
@@ -1410,7 +1410,7 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 	}
 
 	if (!sd->dynamic) {
-		nxp_lock_add_dynamic(const char *macstr);
+		//nxp_lock_add_dynamic(const char *macstr);
 	}
 	
 
