@@ -1025,6 +1025,10 @@ static int post_all_properties(stGateway_t *gw) {
 	json_object_set_new(jmsg, "EXT_PAN_ID", json_string(gw->ZB_PAN_ID));
 	json_object_set_new(jmsg, "NETWORK_KEY", json_string(gw->NETWORK_KEY));
 
+	char buf[256];
+	sprintf(buf, "V%d.%d.%d", MAJOR, MINOR, PATCH);
+	json_object_set_new(jmsg, "Versin", json_string(buf));
+
 	char *smsg = json_dumps(jmsg, 0);
 	if (smsg == NULL) {
 		json_decref(jmsg);
