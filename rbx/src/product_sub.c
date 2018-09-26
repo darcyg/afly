@@ -469,8 +469,10 @@ stLockKey_t *product_sub_lock_add_key_wait_ack(stSubDev_t *sd, int type, int lim
 
 	key->key_state = KEY_STATE_ADDING;
 
+	buf[len] = 0;
 	key->last = time(NULL);
-	key->id   = 10000 * type + j;
+	key->id   = 1000000 * type + atoi(buf);
+	//key->id   = 1000000 * type + j;
 	key->type	= type;
 	key->limit = limit;
 	key->len = len;
@@ -506,7 +508,7 @@ int product_sub_lock_add_key_complete(stSubDev_t *sd, int type, int id) {
 
 	key->key_state = KEY_STATE_ADDED;
 
-	return 0;
+	return product_sub_save(sd, 0, sizeof(*sd));
 }
 
 int product_sub_lock_del_key(stSubDev_t *sd, int type, int id) {
@@ -560,19 +562,21 @@ stLockKey_t *product_sub_lock_get_key_by_id(stSubDev_t *sd, int type, int id) {
 	int j = 0;
 	int adx = (type + (3-1))%3 + 1;
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
-	stLockKey_t *key = NULL;
+	stLockKey_t *key_op = NULL;
 	for (j = 0; j < cnt; j++) {
 		stLockKey_t *key = &sd->aset.lock.keys[adx][j];
 		if (key->key_state == KEY_STATE_NONE) {
 			continue;
 		}
 
+		log_debug("key->id:%d, key->str:%s, id:%d, key->key_state:%d", key->id, key->buf, id, key->key_state);
 		if (key->id != id) {
 			continue;
 		}
+		key_op = key;
 	}
 
-	return key;
+	return key_op;
 }
 
 int product_sub_z3light_get_onoff(stSubDev_t *sd) {

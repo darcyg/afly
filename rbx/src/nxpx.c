@@ -40,7 +40,7 @@ int nxp_del_device(char *type, char *mac) {
 
 }
 
-int nxp_lock_add_pass(int id, int type, int suspend, int startTime, int endTime,  char *buf, int len) {
+int nxp_lock_add_pass(char *macstr, int id, int type, int suspend, int startTime, int endTime,  char *buf, int len) {
 	/**> 0 - normal
    * 1 - dynamic 
    * 2 - bcd        no support
@@ -79,7 +79,7 @@ int nxp_lock_add_pass(int id, int type, int suspend, int startTime, int endTime,
 
 	} 
 
-	json_t *jret = uproto_call(NULL, "mod.lock.add_password", "setAttribute", jarg, 0);
+	json_t *jret = uproto_call(macstr, "device.lock.add_password", "setAttribute", jarg, 0);
 	if (jret == NULL) {
 		json_decref(jret);
 		return -1;
@@ -90,7 +90,7 @@ int nxp_lock_add_pass(int id, int type, int suspend, int startTime, int endTime,
 
 }
 
-int nxp_lock_del_pass(int id, int type) {
+int nxp_lock_del_pass(char *macstr, int id, int type) {
 	if (type != 0 && type != 1 && type != 5) {
 		return -1;
 	}
@@ -100,7 +100,7 @@ int nxp_lock_del_pass(int id, int type) {
 	json_object_set_new(jarg, "passId", json_integer(id));
 	json_object_set_new(jarg, "passType", json_integer(type));
 	json_object_set_new(jarg, "clearAll", json_integer(0));
-	json_t *jret = uproto_call(NULL, "mod.lock.del_password", "setAttribute", jarg, 0);
+	json_t *jret = uproto_call(macstr, "device.lock.del_password", "setAttribute", jarg, 0);
 	if (jret == NULL) {
 		json_decref(jret);
 		return -1;
@@ -109,16 +109,16 @@ int nxp_lock_del_pass(int id, int type) {
 	return 0;
 }
 
-int nxp_lock_add_card(int id, int type, int suspend,  int limit, char *buf, int len) {
+int nxp_lock_add_card(char *macstr, int id, int type, int suspend,  int limit, char *buf, int len) {
 	return -1;
 }
 
-int nxp_lock_del_card(int id, int type) {
+int nxp_lock_del_card(char *macstr, int id, int type) {
 	return -1;
 }
 
 
-int nxp_lock_clr_pass(int type) {
+int nxp_lock_clr_pass(char *macstr, int type) {
 	if (type != 0) {
 		return -1;
 	}
@@ -128,7 +128,7 @@ int nxp_lock_clr_pass(int type) {
 	json_object_set_new(jarg, "passId", json_integer(0));
 	json_object_set_new(jarg, "passType", json_integer(0));
 	json_object_set_new(jarg, "clearAll", json_integer(0x30ae7b00));
-	json_t *jret = uproto_call(NULL, "mod.lock.del_password", "setAttribute", jarg, 0);
+	json_t *jret = uproto_call(macstr, "device.lock.del_password", "setAttribute", jarg, 0);
 	if (jret == NULL) {
 		json_decref(jret);
 		return -1;
@@ -137,7 +137,7 @@ int nxp_lock_clr_pass(int type) {
 	return 0;
 }
 
-int nxp_lock_mod_pass(int id, int type, int startTime, int endTime,  char *buf, int len) {
+int nxp_lock_mod_pass(char *macstr, int id, int type, int startTime, int endTime,  char *buf, int len) {
 	/**> 0 - normal
    * 1 - dynamic 
    * 2 - bcd        no support
@@ -174,7 +174,7 @@ int nxp_lock_mod_pass(int id, int type, int startTime, int endTime,  char *buf, 
 		json_object_set_new(jarg, "passVal2", json_integer(count));
 	} 
 
-	json_t *jret = uproto_call(NULL, "mod.lock.modify_password", "setAttribute", jarg, 0);
+	json_t *jret = uproto_call(macstr, "device.lock.modify_password", "setAttribute", jarg, 0);
 	if (jret == NULL) {
 		json_decref(jret);
 		return -1;
@@ -184,10 +184,10 @@ int nxp_lock_mod_pass(int id, int type, int startTime, int endTime,  char *buf, 
 }
 
 
-int nxp_lock_add_fing(int id, char *buf, int len) {
+int nxp_lock_add_fing(char *macstr, int id, char *buf, int len) {
 	return -1;
 }
 
-int nxp_lock_del_fing(int id) {
+int nxp_lock_del_fing(char *macstr, int id) {
 	return -1;
 }
