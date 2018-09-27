@@ -60,3 +60,5 @@ int fs_monitor_task(void);
 void fs_monitor_print_watchers(void);
 
 #endif /* LIB_AYLA_INCLUDE_AYLA_FILESYSTEM_MONITOR_H_ */
+
+int fs_monitor_fd(void);

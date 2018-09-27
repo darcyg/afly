@@ -24,15 +24,16 @@ static stGateway_t gw = {
 	.id = "238709",	
 };
 
-int product_init() {
+int product_init(const char *netfile) {
 	// /etc/config/dusun/nxp/netinfo
 	//[Wed Sep 26 01:27:20 2018]: E_MSG_START_IND: pan_id: 40d2 coor_addr:30ae channel:15 status: 0
 	
 	log_info("---------------------------------------------");
 	
-	FILE *fp = fopen("/etc/config/dusun/nxp/netinfo", "r");
+
+	FILE *fp = fopen(netfile, "r");
 	if (fp == 0) {
-		log_warn("can't open /etc/config/dusun/nxp/netinfo");
+		log_warn("can't open %s", netfile);
 		return -1;
 	}
 

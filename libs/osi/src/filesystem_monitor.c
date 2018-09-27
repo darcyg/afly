@@ -314,3 +314,7 @@ void fs_monitor_print_watchers(void)
 		    watcher->path, watcher->mask, watcher->wd);
 	}
 }
+
+int fs_monitor_fd() {
+	return state.fd;
+}

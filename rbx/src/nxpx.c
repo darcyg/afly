@@ -190,3 +190,11 @@ int nxp_lock_add_fing(char *macstr, int id, char *buf, int len) {
 int nxp_lock_del_fing(char *macstr, int id) {
 	return -1;
 }
+
+
+int nxp_lock_add_dynamic(char *macstr, int seed, int interval, int startTime, int endTime) {
+	int buf[2];
+	buf[0] = seed;
+	buf[1] = interval;
+	return nxp_lock_add_pass(macstr, 999999, 1, 0, startTime, endTime, (char *)&buf[0], sizeof(buf));
+}

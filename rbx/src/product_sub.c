@@ -377,7 +377,7 @@ void product_sub_view() {
 		log_info("deviceName:%s, online:%d",sd->deviceName, sd->online );
 		log_info("\t   devid: %d", sd->devid);
 		log_info("\t   login: %d", sd->login);
-		log_info("\t   roductKey: %s", sd->productKey);
+		log_info("\t   poductKey: %s", sd->productKey);
 		log_info("\t   deviceSecret: %s", sd->deviceSecret);
 		log_info("\t   battery: %d", sd->battery);
 		log_info("\t   type: %s", sd->type);
@@ -559,6 +559,19 @@ int product_sub_lock_clr_key(stSubDev_t *sd, int type) {
 	return 0;
 }
 
+int product_sub_lock_add_dynamic_wait_ack(stSubDev_t *sd, int seed, int interval) {
+	sd->seed = seed;
+	sd->interval = interval;
+	
+	return 0;
+}
+int product_sub_lock_add_dynamic_complete(stSubDev_t *sd) {
+	sd->dynamic = 1;
+	return product_sub_save(sd, 0, sizeof (*sd));
+}
+
+
+
 stLockKey_t *product_sub_lock_get_key_by_id(stSubDev_t *sd, int type, int id) {
 	int j = 0;
 	int adx = (type + (3-1))%3 + 1;
@@ -599,7 +612,7 @@ int product_valid_password_string(const char *s) {
 
 	int i = 0;
 	for (i = 0; i < len; i++) {
-		if (!(s[i] >= '0' && s[i] <= '9')) {
+		if (! ((s[i] >= '0' && s[i] <= '9') || (s[i] == ',')) ) {
 			return 0;
 		}
 	}

@@ -32,6 +32,7 @@ void do_cmd_add(char *argv[], int argc);
 void do_cmd_del(char *argv[], int argc);
 void do_cmd_glist(char *argv[], int argc);
 void do_cmd_clr(char *argv[], int argc);
+void do_cmd_dynamic(char *argv[], int argc);
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
 	{"help", do_cmd_help, "help info"},
@@ -43,6 +44,7 @@ static stCmd_t cmds[] = {
 	{"glist",		do_cmd_glist,		"post sub dev list"},
 	{"clr",			do_cmd_clr,			"clr sub dev"},
 	{"back",		do_cmd_back,		"remote back gateway"},
+	{"dynamic", do_cmd_dynamic, "get dynamic"},
 
 	/*
 	{"info",		do_cmd_info,		"query zigbee network info : info"},
@@ -294,5 +296,32 @@ void do_cmd_back(char *argv[], int argc) {
 	}
 
 	json_decref(jin);
+}
+
+void do_cmd_dynamic(char *argv[], int argc) {
+	if (argc != 2) {
+		log_warn("argments error: <dynamic> <extaddr> ");
+		return;
+	}
+
+	stSubDev_t *sd = product_sub_search_by_name(argv[1]);
+	if (sd == NULL) {
+		log_warn("no such subdev");
+		return;
+	}
+
+
+	char extaddr[32];
+	hex_parse((u8*)extaddr, sizeof(extaddr), argv[1], 0);
+	
+	char dynamic_buf[32];
+	memset(dynamic_buf, 0, sizeof(dynamic_buf));
+	int ret = subdev_get_dynamic(NULL, NULL, dynamic_buf, sizeof(dynamic_buf), sd);
+	if (ret != 0) {
+		log_warn("no seed or interval, please try later!");
+		return;
+	}
+
+	log_info("dynamic pass is [%s]", dynamic_buf);
 }
 

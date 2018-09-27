@@ -25,7 +25,7 @@ srcs				+= $(ROOTDIR)/libs/osi/src/hex.c
 srcs				+= $(ROOTDIR)/libs/osi/src/parse_argv.c
 srcs				+= $(ROOTDIR)/libs/osi/src/file_io.c
 srcs				+= $(ROOTDIR)/libs/osi/src/file_event.c
-#srcs				+= $(ROOTDIR)/libs/osi/src/filesystem_monitor.c
+srcs				+= $(ROOTDIR)/libs/osi/src/filesystem_monitor.c
 #srcs				+= $(ROOTDIR)/libs/osi/src/hashmap.c
 #srcs				+= $(ROOTDIR)/libs/osi/src/base64.c
 #srcs				+= $(ROOTDIR)/libs/osi/src/md5.c
@@ -69,6 +69,8 @@ aflysrcs		+= $(ROOTDIR)/rbx/src/nxpx.c
 #aflysrcs		+= $(ROOTDIR)/rbx/src/zigbee.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/uproto.c
 aflysrcs		+= $(ROOTDIR)/rbx/src/schedule.c
+aflysrcs		+= $(ROOTDIR)/rbx/src/sha1.c
+aflysrcs		+= $(ROOTDIR)/rbx/src/hmac.c
 
 aflysrcs		+= $(ROOTDIR)/ilop_sdk/src/hal/base64.c  
 aflysrcs		+= $(ROOTDIR)/ilop_sdk/src/hal/HAL_Crypt_Linux.c  

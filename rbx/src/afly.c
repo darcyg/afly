@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/inotify.h>
+
 
 #include <pthread.h>
 
@@ -22,7 +24,10 @@
 #include "nxpx.h"
 #include "schedule.h"
 
+#include "filesystem_monitor.h"
 
+#include "sha1.h"
+#include "hmac.h"
 
 
 void _afly_init(int loglvl);
@@ -42,7 +47,7 @@ static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx
 static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
 static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx);
 static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx);
-static int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx);
+int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx);
 static stAflyService_t svrs[] = {
 	{ "GW",		"1000", "AddSubDev",	gateway_add_subdev  },
 	{ "GW",		"1000", "DelSubDev",	gateway_del_subdev  },
@@ -58,7 +63,7 @@ static stAflyService_t svrs[] = {
 
 static stSchduleTask_t gw_info_task;
 static void gw_info_func(void *arg) {
-	int ret = product_init();
+	int ret = product_init("/etc/config/dusun/nxp/netinfo");
 
 	stGateway_t *gw = product_get_gw();
 	if (ret > 0) {
@@ -77,6 +82,19 @@ static void gw_info_func(void *arg) {
 
 }
 
+#if 0
+void netinfo_change_callback(const char *path, uint32_t mask, const char *file) {
+	log_info("/etc/config/dusun/nxp/netinfo changed");
+	int ret = product_init("/etc/config/dusun/nxp/netinfo");
+
+	stGateway_t *gw = product_get_gw();
+	
+	if (ret > 0) {
+		post_all_properties(gw);
+	}
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 int		afly_init(void *_th, void *_fet, int loglvl, char *dbfile) {
 	env.th = _th;
@@ -89,10 +107,11 @@ int		afly_init(void *_th, void *_fet, int loglvl, char *dbfile) {
 
 	lockqueue_init(&env.msgq);
 	
-	product_init();
+	product_init("/etc/config/dusun/nxp/netinfo");
 	schedue_add(&gw_info_task, 1000, gw_info_func, NULL);
 	int delt = schedue_first_task_delay();
 	timer_set(env.th, &env.task_timer, delt);
+	//fs_monitor_add_watcher("/etc/config/dusur/nxp/netinfo", netinfo_change_callback, IN_MODIFY);
 
 	product_sub_load_all(dbfile, _fet);
 	product_sub_view();
@@ -217,7 +236,7 @@ static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx
 	int Start = -1;			json_get_int(jin, "Start", &Start);
 	int End = -1;				json_get_int(jin, "End", &End);
 
-	if (LockType != 2) {
+	if (LockType != 2 && LockType != 5) {
 		log_warn("now only support pass type!");
 		json_decref(jin);
 		return -2;
@@ -234,11 +253,22 @@ static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx
 		return -4;
 	}
 
+	if (LockType == 5) {
+		int cnt = 0;
+		int passId = 0;
+		int ret = sscanf(KeyStr, "%d,%d", &passId, &cnt);
+		if (ret != 2) {
+			json_decref(jin);
+			log_warn("error format for dynamic param");
+			return -5;
+		}
+	}
+
 	if (Start == -1) {
 		Start = time(NULL);
 	}
 	if (End == -1) {
-		End = time(NULL) + 3600 * 24 * 365;
+		End = time(NULL) + 3600 * 24 * 365 * 10;
 	}
 
 	
@@ -247,15 +277,21 @@ static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx
 	if (key == NULL) {
 		log_warn("full password!!!");
 		json_decref(jin);
-		return -5;
+		return -6;
 	}
-
-	//schedule_a();
 
 	if (LockType == 2) {
 		int passId = atoi(KeyStr);
 		nxp_lock_add_pass(sd->deviceName, key->id, 0, 0, Start, End, (char *)&passId, 4);
-	} 
+	} else if (LockType == 5) {
+		int passId = 0;
+		int cnt = 0;
+		sscanf(KeyStr, "%d,%d", &passId, &cnt);
+		int buf[2];
+		buf[0] = passId;
+		buf[1] = cnt;
+		nxp_lock_add_pass(sd->deviceName, key->id, 5, 0, Start, End, (char *)&buf[0], sizeof(buf));
+	}
 
 
 	json_decref(jin);
@@ -278,7 +314,7 @@ static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx
 	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
 	const char *KeyID = json_get_string(jin, "KeyID");
 
-	if (LockType != 2) {
+	if (LockType != 2 && LockType != 5) {
 		json_decref(jin);
 		log_warn("now only support pass type!");
 		return -2;
@@ -307,6 +343,8 @@ static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx
 	
 	if (LockType == 2) {
 		nxp_lock_del_pass(sd->deviceName, key->id, 0);
+	} else if (LockType == 5) {
+		nxp_lock_del_pass(sd->deviceName, key->id, 5);
 	}
 	
 	json_decref(jin);
@@ -329,7 +367,7 @@ static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx
 
 	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
 
-	if (LockType != 2) {
+	if (LockType != 2 && LockType != 5) {
 		json_decref(jin);
 		log_warn("now only support pass type!");
 		return -2;
@@ -337,6 +375,8 @@ static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx
 
 	if (LockType == 2) {
 		nxp_lock_clr_pass(sd->deviceName, 0);
+	} else if (LockType == 5) {
+		nxp_lock_clr_pass(sd->deviceName, 5);
 	}
 
 	json_decref(jin);
@@ -344,13 +384,94 @@ static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx
 }
 
 
-static int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx) {
+
+static union stEndian {
+	struct {
+		unsigned char c1;
+		unsigned char c2;
+	} x;
+	unsigned short y;
+} endian_x = {
+	.y = 0x0001,
+};
+static int _IS_BIG_ENDIAN() {
+	return !!endian_x.x.c2;
+}
+
+uint32 get_hotp(uint32 seed, uint32 cnt, char *mac) {
+	uint8 d[20];
+	int i = 0;
+	uint8 key[12];
+
+	log_info("seed: %d, cnt:%d", seed, cnt);
+	log_debug_hex("mac:", mac, 8);
+
+
+	/*
+	for (i = 3; i >= 0; i--) {
+		key[i] = (seed) & 0xFF;
+		seed = seed >> 8;
+	}
+	*/
+
+	if (!_IS_BIG_ENDIAN()){
+		/** To Littern */
+		log_info("swap...\r\n");
+		char *p = (char *)&seed;
+		seed = ((p[0]&0xff)<<24) | ((p[1]&0xff) << 16) | ((p[2]&0xff) << 8) | (p[3]&0xff);
+
+		p = (char *)&cnt;
+		cnt = ((p[0]&0xff)<<24) | ((p[1]&0xff) << 16) | ((p[2]&0xff) << 8) | (p[3]&0xff);
+	}
+
+	memcpy(key, &seed, 4);
+
+
+	memcpy(key + 4, mac, 8);
+
+	log_debug_hex("key", key, 12);
+	log_debug_hex("cnt:", &cnt, 4);
+	hmac_sha1(key, 12, (uint8 *) &cnt, 4, d, 20);
+	uint32 pass = 0;
+	for (i = 0; i < 4; i++) {
+		pass = (pass << 8) | d[i];
+	}
+
+	pass = pass & 0x7FFFFFFF;
+	pass = pass % 1000000;
+
+	log_info("dynamic result: %d", pass);
+
+	return (pass);  
+} 
+int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
-	//stSubDev_t *sd = (stSubDev_t *)ctx;
+	stSubDev_t *sd = (stSubDev_t *)ctx;
 
 	/** TODO */
+
+	if (!sd->dynamic) {
+		int seed = time(NULL);
+		int interval = 30 * 60;
+		int startTime = time(NULL);
+		int endTime = time(NULL) + 3600 * 24 * 365 * 10;
+		nxp_lock_add_dynamic(sd->deviceName, seed, interval, startTime, endTime);
+		product_sub_lock_add_dynamic_wait_ack(sd, seed, interval);
+		return -1;
+	}
+
 	
+	char mac[32];
+	hex_parse((u8*)mac, sizeof(mac), sd->deviceName, 0);
+	log_info("deviceName:%s, seed:%d, interval:%d", sd->deviceName, sd->seed, sd->interval);
+	log_debug_hex("HexValue:", mac, 8);
+	int val = get_hotp(sd->seed, time(NULL)/sd->interval, mac);
+	//int val = get_hotp(22202208, time(NULL)/sd->interval, mac);
+
+	char buf[128];
+	sprintf(buf, "%d", val);
+	strcpy(out, buf);
 
 	return 0;
 
@@ -1410,9 +1531,13 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 	}
 
 	if (!sd->dynamic) {
-		//nxp_lock_add_dynamic(const char *macstr);
+		int seed = time(NULL);
+		int interval = 60 * 30;
+		int startTime = time(NULL);
+		int endTime = time(NULL) + 3600 * 24 * 365 * 10;
+		nxp_lock_add_dynamic(sd->deviceName, seed, interval, startTime, endTime);
+		product_sub_lock_add_dynamic_wait_ack(sd, seed, interval);
 	}
-	
 
 
 	if (online) {
@@ -1641,6 +1766,8 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					type = 3;
 				} else if (passType == 21) { // 指纹
 					type = 1;
+				} else if (passType == 5) {
+					type = 5;
 				} else {
 					log_warn("not support check record type!");
 					return;
@@ -1691,7 +1818,9 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					type = 3;
 				} else if (passId >= 1000000 && passId < 2000000) { // 指纹
 					type = 1;
-				} else if (passId != 0){
+				} else if (passId >= 5000000 && passId < 6000000) { // 指纹
+					type = 5;
+				} else if (passId != 0 && passId != 999999){ // 999999 dynamic
 					log_warn("not support check record type!");
 					return;
 				};
@@ -1705,6 +1834,11 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					je = json_object();			
 					json_object_set_new(je, "LockType", json_integer(LockType));
 
+					break;
+				}
+
+				if (passId == 999999) {
+					product_sub_lock_add_dynamic_complete(sd);
 					break;
 				}
 

@@ -49,7 +49,7 @@ typedef struct stSubDev {
 		int rssi;
 		int dynamic;
 		int seed;
-		int inteval;
+		int interval;
 
 
 		union {
@@ -100,6 +100,9 @@ stLockKey_t *product_sub_lock_add_key_wait_ack(stSubDev_t *sd, int type, int lim
 int product_sub_lock_add_key_complete(stSubDev_t *sd, int type, int id);
 int product_sub_lock_del_key(stSubDev_t *sd, int type, int id);
 int product_sub_lock_clr_key(stSubDev_t *sd, int type);
+
+int product_sub_lock_add_dynamic_wait_ack(stSubDev_t *sd, int seed, int interval);
+int product_sub_lock_add_dynamic_complete(stSubDev_t *sd);
 
 stLockKey_t *product_sub_lock_get_key_by_id(stSubDev_t *sd, int type, int id);
 

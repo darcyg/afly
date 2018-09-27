@@ -21,6 +21,7 @@
 #include "common.h"
 #include "timer.h"
 #include "file_event.h"
+#include "filesystem_monitor.h"
 
 
 #include "afly.h"
@@ -111,13 +112,13 @@ static void sig_set() {
 
 static int parse_args(int argc, char *argv[]) {
 	int ch = 0;
-	while((ch = getopt(argc,argv,"P:L:C"))!= -1){
+	while((ch = getopt(argc,argv,"P:L:C:"))!= -1){
 		switch(ch){
 			case 'P':
 				port = atoi(optarg);
 				break;
 			case 'C':
-				use_cmd = 1;
+				use_cmd = atoi(optarg);
 				break;
 			case 'L':
 				loglvl = atoi(optarg);
@@ -135,7 +136,7 @@ static int usage(char *app) {
 					"Options:\n"
 					"  -P                       Udp port to listen.\n"
 					"  -L                       Debug Level (0 ~ 5).\n"
-					"   C                       cmd.\n"
+					"  -C                       cmd (0~1)\n"
 					"For more infomation, please mail to dlauciende@gmail.com\n", app);
 	return 0;
 }
@@ -184,8 +185,16 @@ static void timerout_cb(struct timer *t) {
 	log_info("[%s] %d : %p", __func__, __LINE__, t);
 }
 
+static void fs_monitor_in(void *arg, int fd) {
+	if (fd > 0) {
+		fs_monitor_task();
+	}
+}
 static void	run_main() {
 	log_info("[%s] %d", __func__, __LINE__);
+
+  //printf("%d", get_hotp(22202208,  854457, "\x00\x15\x8D\x00\x02\x6C\x54\x0A"));
+	//return 0;
 
 
 	struct timer tr;
@@ -194,12 +203,16 @@ static void	run_main() {
 	struct file_event_table fet;
 	file_event_init(&fet);
 
+	//fs_monitor_init(IN_NONBLOCK);
+	//file_event_reg(&fet, fs_monitor_fd(), fs_monitor_in, NULL, NULL);
+
 
 	afly_init(&th, &fet, loglvl, "/etc/config/dusun/afly/subdev.db");	
 
 	uproto_init(&th, &fet);
 	
 	if (use_cmd) {
+		log_info("Init CmdLine!!!!!!!");
 		cmd_init(&th, &fet);
 	}
 

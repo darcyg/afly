@@ -23,4 +23,6 @@ int nxp_lock_add_fing(char *macstr, int id, char *buf, int len);
 
 int nxp_lock_del_fing(char *macstr, int id);
 
+int nxp_lock_add_dynamic(char *macstr, int seed, int interval, int startTime, int endTime);
+
 #endif
