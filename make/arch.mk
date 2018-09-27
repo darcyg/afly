@@ -1,5 +1,5 @@
 #ARCH								:= mips
-ARCH								:= MT7620
+#ARCH								:= MT7620
 
 ifeq ($(ARCH),mips)
 CROSSTOOLDIR				:=/opt/au/qsdk-dusun/qsdk
