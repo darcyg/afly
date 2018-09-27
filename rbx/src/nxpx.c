@@ -49,7 +49,7 @@ int nxp_lock_add_pass(char *macstr, int id, int type, int suspend, int startTime
    * 10- one key 
    * */
 
-	if (type != 0 && type != 1 && type != 5) {
+	if (type != 0 && type != 1 && type != 5 && type != 10) {
 		return -1;
 	}
 
@@ -76,7 +76,10 @@ int nxp_lock_add_pass(char *macstr, int id, int type, int suspend, int startTime
 		int count = ((buf[7]&0xff) << 24)  | ((buf[6]&0xff) << 16) | ((buf[5]&0xff) << 8) | ((buf[4]&0xff) << 0);
 		json_object_set_new(jarg, "passVal1", json_integer(val));
 		json_object_set_new(jarg, "passVal2", json_integer(count));
-	} 
+	} else if (type == 10) {
+		json_object_set_new(jarg, "passVal1", json_integer(0));
+		json_object_set_new(jarg, "passVal2", json_integer(0));
+	}
 
 	json_t *jret = uproto_call(macstr, "device.lock.add_password", "setAttribute", jarg, 0);
 	if (jret == NULL) {
@@ -197,4 +200,9 @@ int nxp_lock_add_dynamic(char *macstr, int seed, int interval, int startTime, in
 	buf[0] = seed;
 	buf[1] = interval;
 	return nxp_lock_add_pass(macstr, 999999, 1, 0, startTime, endTime, (char *)&buf[0], sizeof(buf));
+}
+
+
+int nxp_lock_one_key_open(char *macstr) {
+	return nxp_lock_add_pass(macstr, 888888, 10, 0, time(NULL) - 60, time(NULL) + 60 * 4, NULL, 0);
 }

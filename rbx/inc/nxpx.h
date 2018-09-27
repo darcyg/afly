@@ -25,4 +25,6 @@ int nxp_lock_del_fing(char *macstr, int id);
 
 int nxp_lock_add_dynamic(char *macstr, int seed, int interval, int startTime, int endTime);
 
+int nxp_lock_one_key_open(char *macstr);
+
 #endif

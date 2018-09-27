@@ -48,12 +48,14 @@ int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
 int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx);
 int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx);
 int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx);
+int subdev_one_key_open(void *arg, char *in, char *out, int out_len, void *ctx);
 static stAflyService_t svrs[] = {
 	{ "GW",		"1000", "AddSubDev",	gateway_add_subdev  },
 	{ "GW",		"1000", "DelSubDev",	gateway_del_subdev  },
 	{ "GW",		"1000", "ClrSubDev",	gateway_clr_subdev  },
 	{	"Gw",		"1000",	"RemoteBack", gateway_remote_back },
 
+	{ "NXP",	"1203", "OneKeyOpen",	subdev_one_key_open },
 	{ "NXP",	"1203", "AddKey",			subdev_add_key },
 	{ "NXP",	"1203", "DeleteKey",	subdev_del_key },
 	{ "NXP",	"1203",	"clearKey",		subdev_clr_key },
@@ -216,6 +218,15 @@ static stAflyService_t *afly_search_service(char *app, char *model, char *identi
 
 
 ///////////////////////////// AFly Lock Callback //////////////////////////////////////////////
+int subdev_one_key_open(void *arg, char *in, char *out, int out_len, void *ctx) {
+	log_info("in : %s", in);
+
+	stSubDev_t *sd = (stSubDev_t *)ctx;
+
+	nxp_lock_one_key_open(sd->deviceName);
+
+	return 0;
+}
 int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
@@ -1793,11 +1804,11 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					type = 3;
 				} else if (passType == 21) { // 指纹
 					type = 1;
-				} else if (passType == 5) {
+				} else if (passType == 5) { // 次数
 					type = 5;
-				} else if (passType == 1) {
+				} else if (passType == 1) { // 动态
 					type = 6;
-				} else {
+				}else {
 					log_warn("not support check record type!");
 					return;
 				};
@@ -1854,7 +1865,7 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					type = 1;
 				} else if (passId >= 5000000 && passId < 6000000) { // 指纹
 					type = 5;
-				} else if (passId != 0 && passId != 999999){ // 999999 dynamic
+				} else if (passId != 0 && passId != 999999 && passId != 888888){ // 999999 dynamic
 					log_warn("not support check record type!");
 					return;
 				};
@@ -1873,6 +1884,26 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 
 				if (passId == 999999) {
 					product_sub_lock_add_dynamic_complete(sd);
+					break;
+				}
+
+				if (passId == 888888) {
+					identifier = "DoorOpenNotification";
+					je = json_object();			
+					
+					char *KeyID = "7888888";
+					int LockType = 7;
+					json_object_set_new(je, "KeyID", json_string(KeyID));
+					json_object_set_new(je, "LockType", json_integer(LockType));
+					
+					sd->aset.lock.lock_status = 1;
+
+					int ret = linkkit_gateway_post_property_json_sync(sd->devid, "{\"LockState\": 1 }", 10000);
+					log_info("post LockState propety(%d), ret:%d", 1,  ret);
+
+					schedue_add(&sd->task, 5000, subdev_timeout_func, sd);
+					int delt = schedue_first_task_delay();
+					timer_set(env.th, &env.task_timer, delt);
 					break;
 				}
 

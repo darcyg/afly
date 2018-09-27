@@ -36,6 +36,7 @@ void do_cmd_dynamic(char *argv[], int argc);
 
 void do_cmd_addpass(char *argv[], int argc);
 void do_cmd_delpass(char *argv[], int argc);
+void do_cmd_onekey(char *argv[], int argc);
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
 	{"help", do_cmd_help, "help info"},
@@ -50,6 +51,7 @@ static stCmd_t cmds[] = {
 	{"dynamic", do_cmd_dynamic, "get dynamic"},
 	{"addpass", do_cmd_addpass,			"add normal pass"},
 	{"delpass", do_cmd_delpass,			"del normal pass"},
+	{"onekey", do_cmd_onekey,			"one key open door"},
 
 	/*
 	{"info",		do_cmd_info,		"query zigbee network info : info"},
@@ -391,4 +393,29 @@ void do_cmd_delpass(char *argv[], int argc) {
 
 }
 
+
+void do_cmd_onekey(char *argv[], int argc) {
+	if (argc != 2) {
+		log_warn("error arg: onekey <mac: 00158d00026c2530>");
+		return;
+	}
+
+	char *macstr = argv[1];
+
+	stSubDev_t *sd = product_sub_search_by_name(macstr);
+	if (sd == NULL) {
+		log_warn("no such subdev");
+		return;
+	}
+
+	json_t *jin = json_object();
+	char *sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		subdev_one_key_open(NULL, sin, buf, sizeof(buf), sd);
+		free(sin);
+	}
+
+	json_decref(jin);
+}
 
