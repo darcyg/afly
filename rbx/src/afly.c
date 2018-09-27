@@ -43,10 +43,10 @@ int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
 int gateway_clr_subdev(void *arg, char *in, char *out, int out_len, void *ctx);
 int gateway_remote_back(void *arg, char *in, char *out, int out_len, void *ctx);
 
-static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx);
-static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
-static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx);
-static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx);
+int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx);
+int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx);
+int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx);
+int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx);
 int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx);
 static stAflyService_t svrs[] = {
 	{ "GW",		"1000", "AddSubDev",	gateway_add_subdev  },
@@ -216,7 +216,7 @@ static stAflyService_t *afly_search_service(char *app, char *model, char *identi
 
 
 ///////////////////////////// AFly Lock Callback //////////////////////////////////////////////
-static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
+int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
 	stSubDev_t *sd = (stSubDev_t *)ctx;
@@ -298,7 +298,7 @@ static int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx
 	
 	return 0;
 }
-static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx) {
+int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
 	stSubDev_t *sd = (stSubDev_t *)ctx;
@@ -352,7 +352,7 @@ static int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx
 }
 
 
-static int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx) {
+int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
 	stSubDev_t *sd = (stSubDev_t *)ctx;
@@ -477,7 +477,7 @@ int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx) {
 
 }
 
-static int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) {
+int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
 	stSubDev_t *sd = (stSubDev_t *)ctx;
@@ -1768,19 +1768,26 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					type = 1;
 				} else if (passType == 5) {
 					type = 5;
+				} else if (passType == 1) {
+					type = 6;
 				} else {
 					log_warn("not support check record type!");
 					return;
 				};
 
-				stLockKey_t *key = product_sub_lock_get_key_by_id(sd, type, passId);
-				if (key == NULL || key->key_state != KEY_STATE_ADDED) {
-					log_warn("not found key in gateway!!");
-					return;
-				}
-
-				char KeyID[32]; sprintf(KeyID, "%d", key->id);
 				int LockType = type;
+
+				char KeyID[32];
+				if (type == 6) {
+					sprintf(KeyID, "%d", 6999999);
+				} else {
+					stLockKey_t *key = product_sub_lock_get_key_by_id(sd, type, passId);
+					if (key == NULL || key->key_state != KEY_STATE_ADDED) {
+						log_warn("not found key in gateway!!");
+						return;
+					}
+					sprintf(KeyID, "%d", key->id);
+				}
 
 				if (pass == 1) {
 					identifier = "DoorOpenNotification";

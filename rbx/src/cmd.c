@@ -33,6 +33,9 @@ void do_cmd_del(char *argv[], int argc);
 void do_cmd_glist(char *argv[], int argc);
 void do_cmd_clr(char *argv[], int argc);
 void do_cmd_dynamic(char *argv[], int argc);
+
+void do_cmd_addpass(char *argv[], int argc);
+void do_cmd_delpass(char *argv[], int argc);
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
 	{"help", do_cmd_help, "help info"},
@@ -45,6 +48,8 @@ static stCmd_t cmds[] = {
 	{"clr",			do_cmd_clr,			"clr sub dev"},
 	{"back",		do_cmd_back,		"remote back gateway"},
 	{"dynamic", do_cmd_dynamic, "get dynamic"},
+	{"addpass", do_cmd_addpass,			"add normal pass"},
+	{"delpass", do_cmd_delpass,			"del normal pass"},
 
 	/*
 	{"info",		do_cmd_info,		"query zigbee network info : info"},
@@ -324,4 +329,66 @@ void do_cmd_dynamic(char *argv[], int argc) {
 
 	log_info("dynamic pass is [%s]", dynamic_buf);
 }
+
+void do_cmd_addpass(char *argv[], int argc) {
+	if (argc != 4) {
+		log_warn("error arg: addpass <mac: 00158d00026c2530> <LockType:2|5> <KeyStr:123456 | 123456,12>");
+		return;
+	}
+
+	char *macstr = argv[1];
+	int LockType = atoi(argv[2]);
+	char *KeyStr = argv[3];
+
+	stSubDev_t *sd = product_sub_search_by_name(macstr);
+	if (sd == NULL) {
+		log_warn("no such subdev");
+		return;
+	}
+
+	json_t *jin = json_object();
+	json_object_set_new(jin, "LockType", json_integer(LockType));
+	json_object_set_new(jin, "UserLimit", json_integer(1));
+	json_object_set_new(jin, "KeyStr", json_string(KeyStr));
+
+	char *sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		subdev_add_key(NULL, sin, buf, sizeof(buf), sd);
+		free(sin);
+	}
+
+	json_decref(jin);
+}
+void do_cmd_delpass(char *argv[], int argc) {
+	if (argc != 4) {
+		log_warn("error arg: delpass <mac: 00158d00026c2530> <LockType:2|5> <KeyID: 2123456>");
+		return;
+	}
+
+	char *macstr = argv[1];
+	int LockType = atoi(argv[2]);
+	char *KeyID = argv[3];
+
+	stSubDev_t *sd = product_sub_search_by_name(macstr);
+	if (sd == NULL) {
+		log_warn("no such subdev");
+		return;
+	}
+
+	json_t *jin = json_object();
+	json_object_set_new(jin, "LockType", json_integer(LockType));
+	json_object_set_new(jin, "KeyID", json_string(KeyID));
+
+	char *sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		subdev_del_key(NULL, sin, buf, sizeof(buf), sd);
+		free(sin);
+	}
+
+	json_decref(jin);
+
+}
+
 

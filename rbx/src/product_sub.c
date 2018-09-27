@@ -384,6 +384,9 @@ void product_sub_view() {
 		log_info("\t   version: %s", sd->version);
 		log_info("\t   model: %s", sd->model);
 		log_info("\t   app: %s", sd->app);
+		log_info("\t   has_dynamic: %d", sd->dynamic);
+		log_info("\t   seed: %d", sd->seed);
+		log_info("\t   interval: %d", sd->interval);
 
 	}
 
