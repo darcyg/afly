@@ -270,6 +270,25 @@ stSubDev_t *product_sub_search_by_name(const char *name) {
 	return NULL;
 }
 
+stSubDev_t *product_sub_search_by_product_key(const char *key) {
+	int j = 0;
+	int cnt = sizeof(subdevs)/sizeof(subdevs[0]);
+
+	for (j = 0; j < cnt; j++) {
+		stSubDev_t *sd = &subdevs[j];
+		if (!sd->use) {
+			continue;
+		}
+
+		if (strcmp(key, sd->productKey)!= 0) {
+			continue;
+		}
+		
+		return sd;
+	}
+
+	return NULL;
+}
 
 
 int product_sub_add(const char *name, const char *key, const char *secret) {

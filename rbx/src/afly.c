@@ -1206,7 +1206,21 @@ static int event_handler(linkkit_event_t *ev, void *ctx) {
 			{
 				char *productKey = ev->event_data.subdev_deleted.productKey;
 				char *deviceName = ev->event_data.subdev_deleted.deviceName;
+
+				if (productKey == NULL || deviceName == NULL) {
+					log_warn("NULL productKey or deviceName");
+					break;
+				}
+
 				log_info("delete subdev %s<%s>\n", productKey, deviceName);
+				stSubDev_t *sd = product_sub_search_by_name(deviceName);
+				if (sd == NULL) {		
+					log_warn("no such sub device!");
+					break;
+				}
+
+				nxp_del_device("1203", sd->deviceName);
+				
 			}
 			break;
 
@@ -1214,7 +1228,20 @@ static int event_handler(linkkit_event_t *ev, void *ctx) {
 			{
 				char *productKey = ev->event_data.subdev_permited.productKey;
 				int timeoutSec = ev->event_data.subdev_permited.timeoutSec;
+			
+				if (productKey == NULL) {
+					log_warn("NULL productKey");
+					break;
+				}
+
 				log_info("permit subdev %s in %d seconds\n", productKey, timeoutSec);
+				stSubDev_t *sd = product_sub_search_by_product_key(productKey);
+				if (sd == NULL) {
+					log_warn("no such sub device!");
+					break;
+				} 
+
+				nxp_add_device("1203", sd->deviceName);
 			}
 			break;
 	}
