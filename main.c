@@ -206,10 +206,9 @@ static void	run_main() {
 	//fs_monitor_init(IN_NONBLOCK);
 	//file_event_reg(&fet, fs_monitor_fd(), fs_monitor_in, NULL, NULL);
 
+	uproto_init(&th, &fet);
 
 	afly_init(&th, &fet, loglvl, "/etc/config/dusun/afly/subdev.db");	
-
-	uproto_init(&th, &fet);
 	
 	if (use_cmd) {
 		log_info("Init CmdLine!!!!!!!");

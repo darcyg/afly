@@ -30,6 +30,12 @@ typedef struct stLockKey {
 	char	buf[32];
 } stLockKey_t;
 
+typedef struct stSubProductKeys {
+    char *productKey;
+		char *model;
+		char *type;
+} stSubProductKeys_t;
+
 
 typedef struct stSubDev {
 		int use;
@@ -61,7 +67,7 @@ typedef struct stSubDev {
 				int cardAll;
 				int fingNum;
 				int fingAll;
-				stLockKey_t keys[3][128];
+				stLockKey_t keys[4][128];
 			} lock;
 			struct {
 				int onoff;
@@ -121,6 +127,8 @@ void product_sub_view();
 
 int product_valid_password_string(const char *s);
 
+
+stSubProductKeys_t *product_sub_get_product_key_by_type_or_model(char *type, char *model);
 #ifdef __cplusplus
 }
 #endif

@@ -1,5 +1,6 @@
 #include "nxpx.h"
 #include "uproto.h"
+#include "log.h"
 
 int nxp_get_list() {
 	json_t *jarg = json_object();
@@ -17,7 +18,7 @@ int nxp_add_device(char *type, char *mac) {
 	json_t *jarg = json_object();
 	json_object_set_new(jarg, "mac", json_string(mac));
 	json_object_set_new(jarg, "type", json_string(type));
-	json_t *jret = uproto_call(NULL, "mod.add_device", "setAttribute", jarg, 0);
+	json_t *jret = uproto_call(mac, "mod.add_device", "setAttribute", jarg, 0);
 	if (jret == NULL) {
 		json_decref(jret);
 		return -1;
@@ -30,7 +31,7 @@ int nxp_del_device(char *type, char *mac) {
 	json_t *jarg = json_object();
 	json_object_set_new(jarg, "mac", json_string(mac));
 	json_object_set_new(jarg, "type", json_string(type));
-	json_t *jret = uproto_call(NULL, "mod.del_device", "setAttribute", jarg, 0);
+	json_t *jret = uproto_call(mac, "mod.del_device", "setAttribute", jarg, 0);
 	if (jret == NULL) {
 		json_decref(jret);
 		return -1;

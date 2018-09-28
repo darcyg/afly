@@ -34,6 +34,7 @@
 	17. 增加动态密码和次数密码 [OK] 
 	18. 合并到Dusun-Openwrit 系统包
 	19. 一键开门 [OK]
+	20. 支持量产功能及静态增加Key&Secert功能 [ok]
 
 	
 # Version:  

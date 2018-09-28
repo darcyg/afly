@@ -40,6 +40,7 @@ CFLAGS							+= -I$(ROOTDIR)/libs/third/libhttpd/include
 CFLAGS							+= -fPIC
 CFLAGS							+= -fpermissive
 CFLAGS							+= -I$(ROOTDIR)/ilop_sdk/include/
+#CFLAGS							+= -I$(ROOTDIR)/sdk_packs/iotx-sdk-c/output/release/include
 CFLAGS							+= -I$(ROOTDIR)/rbx/inc
 
 CXXFLAGS						:= -std=c++0x 
@@ -48,7 +49,9 @@ TARGET_CFLAGS				+= $(CROSS_CFLAGS)
 
 
 #LDFLAGS							:= -L$(ROOTDIR)/lib -lm -lrt -ldl -lpthread -lubus -lblobmsg_json -lubox -L$(ROOTDIR)/build/ -lilop-sdk -lilop-tls -lilop-hal -ljansson
-LDFLAGS							:= -L$(ROOTDIR)/lib -lm -lrt -ldl -lpthread -lubus -lblobmsg_json -lubox -L$(ROOTDIR)/build/ -lilop-sdk -ljansson
+LDFLAGS							:= -L$(ROOTDIR)/lib -lm -lrt -ldl -lpthread -lubus -lblobmsg_json -lubox -L$(ROOTDIR)/build/ -ljansson
 LDFLAGS							+= -lstdc++
 LDFLAGS							+= -L$(ROOTDIR)/ilop_sdk/lib
+LDFLAGS							+= -lilop-sdk 
+#LDFLAGS							+= -L$(ROOTDIR)/sdk_packs/iotx-sdk-c/output/release/lib 
 TARGET_LDFLAGS			+= $(CROSS_LDFLAGS)

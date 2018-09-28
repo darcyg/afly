@@ -7,14 +7,13 @@
 
 
 static char *subdev_file = "/etc/config/dusun/afly/subdev.db";
-static stSubDev_t subdevs[MAX_SUB_DEV] = {0
-#if 0
+static stSubDev_t subdevs[MAX_SUB_DEV] = {
 	[0] =  {
 		.use = 1,
 		.devid = 0,
 		.productKey = "a1wcKZILMWO",
-		.deviceName = "L92bxAd5sgKQg20K2LLF",
-		.deviceSecret = "rT8fGtnhTTy3gyH5mL8BjKVvRGUz4GbE",
+		.deviceName = "00158d00026c5415",
+		.deviceSecret = "goXATTZ7X9QoOxzFdAMbtjurKnqugvOs",
 
 		.battery = 100,
 		.online = 0,
@@ -24,6 +23,7 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {0
 		.app = "NXP",
 		.aset = {{0}},
 	},
+#if 0
 	[1] =  {
 		.use = 1,
 		.devid = 0,
@@ -41,6 +41,12 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {0
 	},
 #endif
 
+};
+
+static stSubProductKeys_t spks[] = {
+	{"a1wcKZILMWO", "0009", "1203"},
+	{"a1wcKZILMWO", "0066", "1203"},
+	{"a1wcKZILMWO", "0008", "1203"},
 };
 
 //////////////////////////////////////////////////////////////
@@ -132,7 +138,7 @@ int product_sub_load_all(const char *db, void *fet) {
 		return _product_sub_load_all(subdev_file, fet);
 	}
 	
-	memset(&subdevs[2], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 2);
+	memset(&subdevs[1], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 1);
 	//memset(subdevs, 0, sizeof(subdevs));
 
 	return product_sub_save_all(subdev_file);
@@ -295,7 +301,11 @@ int product_sub_add(const char *name, const char *key, const char *secret) {
 	stSubDev_t *dev = product_sub_search_by_name(name);
 	if (dev != NULL) {
 		strcpy(dev->productKey, key);
-		strcpy(dev->deviceSecret, secret);
+		if (secret != NULL) {
+			strcpy(dev->deviceSecret, secret);
+		} else {
+			dev->deviceSecret[0] = 0;
+		}
 		return 0;
 	}
 
@@ -305,7 +315,11 @@ int product_sub_add(const char *name, const char *key, const char *secret) {
 	}
 
 	strcpy(dev->productKey, key);
-	strcpy(dev->deviceSecret, secret);
+	if (secret != NULL)  {
+		strcpy(dev->deviceSecret, secret);
+	} else {
+		dev->deviceSecret[0] = 0;
+	}
 	strcpy(dev->deviceName, name);
 	
 	dev->devid = 0;
@@ -418,9 +432,27 @@ int product_sub_lock_set_lock_status(stSubDev_t *sd, int status) {
 	sd->aset.lock.lock_status = status;
 	return 0;
 }
+
+static int product_sub_convet_type2idx(int type) {
+	switch (type) {
+		case 1:
+			return 0;
+		case 2:
+			return 1;
+		case 3:
+			return 2;
+		case 5:
+			return 3;
+			
+		default:
+			break;
+	}
+	return 0;
+}
 int product_sub_lock_get_key_num(stSubDev_t *sd, int type) {
 
-	int adx = (type + (3-1))%3 + 1;
+	//int adx = (type + (3-1))%3 + 1;
+	int adx = product_sub_convet_type2idx(type);
 	
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	int num = 0;
@@ -443,7 +475,8 @@ stLockKey_t *product_sub_lock_get_key_i(stSubDev_t *sd, int i, int type) {
 		return NULL;
 	}
 
-	int adx = (type + (3-1))%3 + 1;
+	//int adx = (type + (3-1))%3 + 1;
+	int adx = product_sub_convet_type2idx(type);
 
 	int j = 0;
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
@@ -466,7 +499,8 @@ stLockKey_t *product_sub_lock_get_key_i(stSubDev_t *sd, int i, int type) {
 
 stLockKey_t *product_sub_lock_add_key_wait_ack(stSubDev_t *sd, int type, int limit, char *buf, int len) {
 	int num = product_sub_lock_get_key_num(sd, type);
-	int adx = (type + (3-1))%3 + 1;
+	//int adx = (type + (3-1))%3 + 1;
+	int adx = product_sub_convet_type2idx(type);
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 		
 	if (!(num >= 0 && num < cnt)) {
@@ -506,7 +540,8 @@ stLockKey_t *product_sub_lock_add_key_wait_ack(stSubDev_t *sd, int type, int lim
 int product_sub_lock_add_key_complete(stSubDev_t *sd, int type, int id) {
 	//int num = product_sub_lock_get_key_num(sd, type);
 
-	int adx = (type + (3-1))%3 + 1;
+	//int adx = (type + (3-1))%3 + 1;
+	int adx = product_sub_convet_type2idx(type);
 
 	int j = 0;
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
@@ -536,7 +571,8 @@ int product_sub_lock_add_key_complete(stSubDev_t *sd, int type, int id) {
 int product_sub_lock_del_key(stSubDev_t *sd, int type, int id) {
 	int j = 0;
 
-	int adx = (type + (3-1))%3 + 1;
+	//int adx = (type + (3-1))%3 + 1;
+	int adx = product_sub_convet_type2idx(type);
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	stLockKey_t *key_del = NULL;
 	for (j = 0; j < cnt; j++) {
@@ -565,7 +601,8 @@ int product_sub_lock_del_key(stSubDev_t *sd, int type, int id) {
 
 int product_sub_lock_clr_key(stSubDev_t *sd, int type) {
 	int j = 0;
-	int adx = (type + (3-1))%3 + 1;
+	//int adx = (type + (3-1))%3 + 1;
+	int adx = product_sub_convet_type2idx(type);
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	for (j = 0; j < cnt; j++) {
 		stLockKey_t *key = &sd->aset.lock.keys[adx][j];
@@ -596,7 +633,8 @@ int product_sub_lock_add_dynamic_complete(stSubDev_t *sd) {
 
 stLockKey_t *product_sub_lock_get_key_by_id(stSubDev_t *sd, int type, int id) {
 	int j = 0;
-	int adx = (type + (3-1))%3 + 1;
+	//int adx = (type + (3-1))%3 + 1;
+	int adx = product_sub_convet_type2idx(type);
 	int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
 	stLockKey_t *key_op = NULL;
 	for (j = 0; j < cnt; j++) {
@@ -640,5 +678,17 @@ int product_valid_password_string(const char *s) {
 	}
 
 	return 1;
+}
+
+stSubProductKeys_t *product_sub_get_product_key_by_type_or_model(char *type, char *model) {
+	int cnt = sizeof(spks)/sizeof(spks[0]);
+	int i = 0;
+	for (i = 0; i < cnt; i++) {
+		stSubProductKeys_t *spk = &spks[i];
+		if (strcmp(spk->model, model) == 0 || strcmp(spk->type, type) == 0) {
+			return spk;
+		}
+	}
+	return NULL;
 }
 

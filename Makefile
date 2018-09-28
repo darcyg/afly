@@ -98,6 +98,8 @@ ilopsrcs 		+= $(ROOTDIR)/ilop_sdk/src/hal/kv.c
 
 ilopobjs		:= $(subst $(ROOTDIR),$(WORKDIR), $(subst .c,.o,$(ilopsrcs)))
 ilopobjs		+= $(ROOTDIR)/ilop_sdk/lib/libilop-tls.a
+#ilopobjs		+= $(ROOTDIR)/sdk_packs/iotx-sdk-c/output/release/lib/libiot_sdk.a
+#ilopobjs		+= $(ROOTDIR)/sdk_packs/iotx-sdk-c/output/release/lib/libiot_tls.a
 
 
 -include $(ROOTDIR)/make/arch.mk

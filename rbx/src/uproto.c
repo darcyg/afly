@@ -146,6 +146,7 @@ static int		uproto_ubus_send(void *_jmsg) {
 	json_object_set_new(jmsg, "to", json_string("NXP"));
 	char *smsg= json_dumps(jmsg, 0);
 	if (smsg != NULL) {
+		//memset(&b, 0, sizeof(b));
 		blob_buf_init(&b, 0);
 		blobmsg_add_string(&b, "PKT", smsg);
 		/**> TODO determine the dest through the dest segment */
@@ -157,6 +158,7 @@ static int		uproto_ubus_send(void *_jmsg) {
 	json_object_set_new(jmsg, "to", json_string("ZB3"));
 	smsg= json_dumps(jmsg, 0);
 	if (smsg != NULL) {
+		//memset(&b, 0, sizeof(b));
 		blob_buf_init(&b, 0);
 		blobmsg_add_string(&b, "PKT", smsg);
 		/**> TODO determine the dest through the dest segment */

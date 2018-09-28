@@ -58,7 +58,7 @@ static stAflyService_t svrs[] = {
 	{ "NXP",	"1203", "OneKeyOpen",	subdev_one_key_open },
 	{ "NXP",	"1203", "AddKey",			subdev_add_key },
 	{ "NXP",	"1203", "DeleteKey",	subdev_del_key },
-	{ "NXP",	"1203",	"clearKey",		subdev_clr_key },
+	{ "NXP",	"1203",	"ClearKey",		subdev_clr_key },
 	{	"NXP",	"1203",	"GetDynamic", subdev_get_dynamic},
 	{ "NXP",	"1203", "GetKeyList",	subdev_get_key_list },
 };
@@ -482,10 +482,19 @@ int subdev_get_dynamic(void *arg, char *in, char *out, int out_len, void *ctx) {
 
 	char buf[128];
 	sprintf(buf, "%d", val);
-	strcpy(out, buf);
 
+	json_t *jout = json_object();
+	if (jout != NULL) {
+		json_object_set_new(jout, "DynamicPass", json_string(buf));
+		char *sout = json_dumps(jout, 0);
+		if (sout != NULL) {
+			strcpy(out, sout);
+			free(sout);
+		}
+		json_decref(jout);
+	}
+	
 	return 0;
-
 }
 
 int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) {
@@ -686,10 +695,8 @@ static linkkit_cbs_t dev_cbs = {
 static void ota_callback(int event, const char *version, void *ctx) {
 	log_info("event: %d, version: %s\n", event, version);
 
-	log_warn("now not support ota function !!!");
-#if 0
+	//log_warn("now not support ota function !!!");
 	linkkit_gateway_ota_update(512);
-#endif
 }
 
 ///////////////////////////// AFly Callback //////////////////////////////////////////////////////////
@@ -1517,7 +1524,22 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 	stSubDev_t *sd = product_sub_search_by_name(name);
 	if (sd == NULL) {
 		log_warn("can't find this(%s) device in device list", name);
-		return;
+
+		log_info("find the pubkey for through model & type");
+		
+		stSubProductKeys_t *spk = product_sub_get_product_key_by_type_or_model((char *)type, (char *)model);
+		if (spk == NULL) {	
+			log_warn("Can't find correct public key for this device!");
+			return;
+		}
+
+		product_sub_add(name, spk->productKey, NULL);
+
+		sd = product_sub_search_by_name(name);
+		if (sd == NULL) {
+			log_warn("can't be here or full sub dev!");
+			return;
+		}
 	}
 
 	/*
@@ -1531,7 +1553,11 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 	log_info("deviceName:%s, productKey: %s,  deviceSecret:%s", sd->deviceName, sd->productKey, sd->deviceSecret);
 
 	if (sd->devid == 0) {
-		int ret = linkkit_gateway_subdev_register(sd->productKey, sd->deviceName, sd->deviceSecret);
+		char *secret = NULL;
+		if (strcmp(sd->deviceSecret, "") != 0) {
+			secret = sd->deviceSecret;
+		}
+		int ret = linkkit_gateway_subdev_register(sd->productKey, sd->deviceName, secret);
 		if (ret < 0) {
 			log_warn("linkkit gateway subdev register failed: ret(%d[%08x]) key(%s),name(%s), secret(%s)",
 					ret, ret, sd->productKey, sd->deviceName, sd->deviceSecret);
@@ -1818,6 +1844,8 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 				char KeyID[32];
 				if (type == 6) {
 					sprintf(KeyID, "%d", 6999999);
+					/**> Use Normal Type */
+					LockType = 2;
 				} else {
 					stLockKey_t *key = product_sub_lock_get_key_by_id(sd, type, passId);
 					if (key == NULL || key->key_state != KEY_STATE_ADDED) {
@@ -1894,6 +1922,8 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					char *KeyID = "7888888";
 					int LockType = 7;
 					json_object_set_new(je, "KeyID", json_string(KeyID));
+					/** User Normal Pass Type */
+					LockType = 2;
 					json_object_set_new(je, "LockType", json_integer(LockType));
 					
 					sd->aset.lock.lock_status = 1;
