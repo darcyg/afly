@@ -32,9 +32,11 @@
 	15. 网关的默认模版参数上报, 解析获取默认参数 [ok]
 	16. 增加网关程序版本上报 [ok]
 	17. 增加动态密码和次数密码 [OK] 
-	18. 合并到Dusun-Openwrit 系统包
+	18. 合并到Dusun-Openwrit 系统包 [OK]
 	19. 一键开门 [OK]
 	20. 支持量产功能及静态增加Key&Secert功能 [ok]
+	21. OTA
+	22. Cloud OTA Get获取
 
 	
 # Version:  

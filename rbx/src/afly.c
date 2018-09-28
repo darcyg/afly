@@ -511,7 +511,7 @@ int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) 
 	}
 
 	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
-	if (LockType != 2) {
+	if (LockType != 2 && LockType != 5) {
 		json_decref(jin);
 		log_warn("now only support pass type!");
 		return -2;
@@ -586,80 +586,6 @@ static int subdev_set_property(char *in, void *ctx) {
 
 static int subdev_call_service(char *identifier, char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
-
-#if 0
-	stSubDevCfg_t *sdc = (stSubDevCfg_t*)ctx;
-
-	log_info("productKey:%s, deviceName:%s, deviceSecret:%s", sdc->productKey, sdc->deviceName, sdc->deviceSecret);
-
-	if (strcmp(identifier, "set") == 0 || strcmp(identifier, "get") == 0) {
-		log_warn("get/set will through get/set interface.");
-		return -1;
-	}
-
-	if (! (  strcmp(identifier, "AddKey") == 0 ||
-				strcmp(identifier, "DeleteKey") == 0 || 
-				strcmp(identifier, "GetKeyList") == 0
-				) ) {
-		log_warn("not support service : %s", identifier);
-		return -1;
-	}
-
-	json_error_t error;
-	json_t *jin = json_loads(in, 0, &error);
-	if (jin == NULL) {
-		log_warn("error json format!!!");
-		return -1;
-	}
-
-	if (strcmp(identifier, "AddKey") == 0) {
-		int LockType = -1; json_get_int(jin, "LockType", &LockType);
-		int UserLimit = -1; json_get_int(jin, "UserLimit", &UserLimit);
-		const char *KeyId = json_get_string(jin, "KeyId");
-		if (LockType == -1 || UserLimit == -1) {
-			log_warn("Error Arg: LockType(%d), UserLimit(%d)", LockType, UserLimit);
-			return -1;
-		}
-		if (LockType != 2) { // 1-> finger, 2->pass, 3->card, 4->yaoshi
-			log_warn("Error LockType %d", LockType);
-			return -1;
-		}
-		if (UserLimit != 1) { // 1-> normal, 2->admin, 3->jiechi user
-			log_warn("Error UserLimit %d", UserLimit);
-			return -1;
-		}
-		if (KeyId == NULL) {
-			log_warn("Error, No KeyId");
-			return -1;
-		}
-
-
-		log_info("add key LockType:%d, UserLimit:%d, KeyId:%s ...", LockType, UserLimit, KeyId);
-		/**> add key */
-		return 0;
-	} else if (strcmp(identifier, "DeleteKey") == 0) {
-		const char *KeyId = json_get_string(jin, "KeyId");
-		if (KeyId == NULL) {
-			log_warn("Error, No Key Id");
-			return -1;
-		}
-		log_info("del key , KeyId:%s ...",  KeyId);
-		/**> Del Key */
-	} else if (strcmp(identifier, "GetKeyList") == 0) {
-		int LockType = -1; json_get_int(jin, "LockType", &LockType);
-		if (LockType != 2) {
-			log_warn("Error LockType %d", LockType);
-			return -1;
-		}
-		log_info("Get Key List, LockType : %d ...", LockType);	
-		/**> Get Key List */
-	}
-#endif
-
-#if 0
-	lock_t *lock = ctx;
-	linkkit_gateway_post_property_json_sync(lock->devid, "{\"SetTimer\": \"hello, world!\"}", 5000);
-#endif
 
 	stSubDev_t *sd = (stSubDev_t*)ctx;
 
