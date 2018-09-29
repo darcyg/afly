@@ -8,6 +8,8 @@
 
 static char *subdev_file = "/etc/config/dusun/afly/subdev.db";
 static stSubDev_t subdevs[MAX_SUB_DEV] = {
+	{{0}}
+#if 0
 	[0] =  {
 		.use = 1,
 		.devid = 0,
@@ -23,7 +25,6 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {
 		.app = "NXP",
 		.aset = {{0}},
 	},
-#if 0
 	[1] =  {
 		.use = 1,
 		.devid = 0,
@@ -138,8 +139,8 @@ int product_sub_load_all(const char *db, void *fet) {
 		return _product_sub_load_all(subdev_file, fet);
 	}
 	
-	memset(&subdevs[1], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 1);
-	//memset(subdevs, 0, sizeof(subdevs));
+	//memset(&subdevs[1], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 1);
+	memset(subdevs, 0, sizeof(subdevs));
 
 	return product_sub_save_all(subdev_file);
 }
@@ -174,11 +175,12 @@ int product_sub_save(stSubDev_t *sd, int off, int size) {
 
 	int i = sd - &subdevs[0];
 	
-	FILE *fp = fopen(subdev_file, "w");
+	FILE *fp = fopen(subdev_file, "r+");
 	if (fp == NULL) {
 		return -2;
 	}
 
+	fseek(fp, 0, SEEK_SET);
 	fseek(fp, i*sizeof(*sd), SEEK_SET);
 
 	char *p = (char *)sd;

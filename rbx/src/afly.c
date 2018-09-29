@@ -29,6 +29,8 @@
 #include "sha1.h"
 #include "hmac.h"
 
+//#include "exports/linkkit_gateway_export.h"
+
 
 void _afly_init(int loglvl);
 void _afly_end();
@@ -566,11 +568,90 @@ int subdev_get_key_list(void *arg, char *in, char *out, int out_len, void *ctx) 
 static int subdev_get_property(char *in, char *out, int out_len, void *ctx) {
 	log_info("in : %s", in);
 
-	log_warn("now not support !");
+	stSubDev_t *sd = (stSubDev_t *)ctx;
 
-	//stSubDev_t *sdc = (stSubDev_t*)sdc;
 
-	return -1;
+	if (!sd) {
+		log_info("subdev not found\n");
+		return -1;
+	}
+
+	json_error_t error;
+	json_t *jin = json_loads(in, 0, &error);
+	if (jin == NULL) {
+		log_warn("error json format!!!");
+		return -1;
+	}
+
+	if (!json_is_array(jin)) {
+		log_warn("error json type, not array!!!");
+		json_decref(jin);
+		return -1;
+	}
+
+	int iSize =	json_array_size(jin);
+	if (iSize <= 0) {
+		log_warn("error json array size!!!");
+		json_decref(jin);
+		return -1;
+	}
+
+	json_t *jret = json_object();
+	if (jret == NULL) {
+		log_warn("error new json object ret failed");
+		json_decref(jin);
+		return -1;
+	}
+
+	stGateway_t *gw = product_get_gw();
+
+	//["LockState","WIFI_Band","WiFI_RSSI","WIFI_AP_BSSID","WIFI_Channel","WiFI_SNR","Model","Version","LinkType","BatteryPercentage"]
+
+	size_t  i		= 0;
+	json_t *jv	= NULL;
+	json_array_foreach(jin, i, jv) {
+		const char *sv = json_string_value(jv);
+		if (strcmp(sv, "ZB_Band") == 0) {
+			json_object_set_new(jret, "ZB_Band", json_integer(gw->ZB_Band));
+		} else if (strcmp(sv, "ZB_Channel") == 0) {
+			json_object_set_new(jret, "ZB_Channel", json_integer(gw->ZB_Channel));
+		} else if (strcmp(sv, "ZB_CO_MAC") == 0) {	
+			json_object_set_new(jret, "ZB_CO_MAC", json_string(gw->ZB_CO_MAC));
+		} else if (strcmp(sv, "ZB_PAN_ID") == 0) {
+			json_object_set_new(jret, "ZB_PAN_ID", json_string(gw->ZB_PAN_ID));
+		} else if (strcmp(sv, "EXT_PAN_ID") == 0) {
+			json_object_set_new(jret, "EXT_PAN_ID", json_string(gw->EXT_PAN_ID));
+		} else if (strcmp(sv, "NETWORK_KEY") == 0) {
+			json_object_set_new(jret, "NETWORK_KEY", json_string(gw->NETWORK_KEY));
+		} else if (strcmp(sv, "Model") == 0) {
+			json_object_set_new(jret, "Model", json_string(sd->model));
+		} else if (strcmp(sv, "Version") == 0) {
+			json_object_set_new(jret, "Version", json_string(sd->version));
+		} else if (strcmp(sv, "BatteryPercentage") == 0) {
+			json_object_set_new(jret, "BatteryPercentage", json_integer(sd->battery));
+		} else if (strcmp(sv, "WiFI_RSSI") == 0) {
+			json_object_set_new(jret, "WiFI_RSSI", json_integer(sd->rssi));
+		} else if (strcmp(sv, "WIFI_Channel") == 0) {
+			json_object_set_new(jret, "WIFI_Channel", json_integer(gw->ZB_Channel));
+		}
+	}
+
+	json_decref(jin);
+
+	char *sret = json_dumps(jret, 0);
+	if (sret == NULL) {
+		log_warn("error no memnory : json_dumps");
+		json_decref(jret);
+		return -1;
+	}
+
+	strcpy(out, sret);
+	log_info("out : %s", out);
+
+	free(sret);
+	json_decref(jret);
+
+	return 0;
 }
 
 static int subdev_set_property(char *in, void *ctx) {
@@ -1819,7 +1900,7 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 					type = 1;
 				} else if (passId >= 5000000 && passId < 6000000) { // 指纹
 					type = 5;
-				} else if (passId != 0 && passId != 999999 && passId != 888888){ // 999999 dynamic
+				} else if (passId != 0 && passId != 999999 && passId != 888888){ // 999999 dynamic, 888888 onekey, 0 clr key
 					log_warn("not support check record type!");
 					return;
 				};
@@ -1837,6 +1918,7 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 				}
 
 				if (passId == 999999) {
+					log_info("Complete Dynamic Pass");
 					product_sub_lock_add_dynamic_complete(sd);
 					break;
 				}

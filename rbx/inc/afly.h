@@ -6,6 +6,7 @@
 #include "lockqueue.h"
 
 #include "linkkit.h"
+//#include "iot_export.h"
 #include "product.h"
 #include "product_sub.h"
 

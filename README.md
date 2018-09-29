@@ -37,6 +37,7 @@
 	20. 支持量产功能及静态增加Key&Secert功能 [ok]
 	21. OTA
 	22. Cloud OTA Get获取
+	23. Flash读取问题
 
 	
 # Version:  
