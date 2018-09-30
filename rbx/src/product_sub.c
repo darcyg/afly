@@ -8,8 +8,9 @@
 
 static char *subdev_file = "/etc/config/dusun/afly/subdev.db";
 static stSubDev_t subdevs[MAX_SUB_DEV] = {
-	{{0}}
 #if 0
+	{0}
+#else
 	[0] =  {
 		.use = 1,
 		.devid = 0,
@@ -139,7 +140,7 @@ int product_sub_load_all(const char *db, void *fet) {
 		return _product_sub_load_all(subdev_file, fet);
 	}
 	
-	//memset(&subdevs[1], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 1);
+	//memset(&subdevs[2], 0, sizeof(subdevs) - sizeof(subdevs[0]) * 2);
 	memset(subdevs, 0, sizeof(subdevs));
 
 	return product_sub_save_all(subdev_file);
@@ -427,6 +428,7 @@ void product_sub_view() {
 
 }
 
+
 int product_sub_lock_get_lock_status(stSubDev_t *sd) {
 	return sd->aset.lock.lock_status;
 }
@@ -579,7 +581,7 @@ int product_sub_lock_del_key(stSubDev_t *sd, int type, int id) {
 	stLockKey_t *key_del = NULL;
 	for (j = 0; j < cnt; j++) {
 		stLockKey_t *key = &sd->aset.lock.keys[adx][j];
-		if (!key->key_state == KEY_STATE_ADDED) {
+		if (!(key->key_state == KEY_STATE_ADDED)) {
 			continue;
 		}
 
@@ -599,6 +601,26 @@ int product_sub_lock_del_key(stSubDev_t *sd, int type, int id) {
 	memset(key_del, 0, sizeof(*key_del));
 
 	return product_sub_save(sd, 0, sizeof(*sd));
+}
+
+
+void product_sub_lock_view_pass(stSubDev_t *sd) {
+	int acnt = sizeof(sd->aset.lock.keys)/sizeof(sd->aset.lock.keys[0]);
+	int adx = 0;
+	for (adx = 0; adx < acnt; adx++) {
+		int j = 0;
+		int cnt = sizeof(sd->aset.lock.keys[adx])/sizeof(sd->aset.lock.keys[adx][0]);
+		for (j = 0; j < cnt; j++) {
+			stLockKey_t *key = &sd->aset.lock.keys[adx][j];
+			if (!(key->key_state == KEY_STATE_ADDED)) {
+				continue;
+			}
+
+			log_debug("key->id:%d, key->str:%s, key->key_state:%d", key->id, key->buf, key->key_state);
+		}
+	}
+
+	return 0;
 }
 
 int product_sub_lock_clr_key(stSubDev_t *sd, int type) {

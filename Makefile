@@ -116,6 +116,7 @@ run :
 
 scp : 
 	scp -P2204 ./build/afly root@192.168.10.230:/root
+	#scp -P2201 ./build/afly root@192.168.10.230:/root
 	#scp -P2200 ./build/libilop-hal.so root@192.168.10.230:/usr/lib
-	#scp -P2200 ./ilop_sdk/lib/libilop-sdk.so root@192.168.10.230:/usr/lib
-	#scp -P2200 ./files/linkkit.hal root@192.168.10.230:/etc/config/dusun/afly
+	#scp -P2201 ./ilop_sdk/lib/libilop-sdk.so root@192.168.10.230:/usr/lib
+	#scp -P2204 ./files/linkkit.hal root@192.168.10.230:/etc/config/dusun/afly

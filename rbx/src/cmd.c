@@ -13,6 +13,7 @@
 #include "cmd.h"
 //#include "zigbee.h"
 #include "product_sub.h"
+#include "product.h"
 
 
 void do_cmd_exit(char *argv[], int argc);
@@ -37,6 +38,8 @@ void do_cmd_dynamic(char *argv[], int argc);
 void do_cmd_addpass(char *argv[], int argc);
 void do_cmd_delpass(char *argv[], int argc);
 void do_cmd_onekey(char *argv[], int argc);
+void do_cmd_viewpass(char *argv[], int argc);
+void do_cmd_reset(char *argv[], int argc);
 static stCmd_t cmds[] = {
 	{"exit", do_cmd_exit, "exit the programe!"},
 	{"help", do_cmd_help, "help info"},
@@ -52,6 +55,9 @@ static stCmd_t cmds[] = {
 	{"addpass", do_cmd_addpass,			"add normal pass"},
 	{"delpass", do_cmd_delpass,			"del normal pass"},
 	{"onekey", do_cmd_onekey,			"one key open door"},
+	{"viewpass", do_cmd_viewpass,	"view lock pass"},
+	{"reset",		do_cmd_reset,		"reset gateway"},
+
 
 	/*
 	{"info",		do_cmd_info,		"query zigbee network info : info"},
@@ -256,7 +262,7 @@ void do_cmd_zclcmd(char *argv[], int argc) {
 
 void do_cmd_add(char *argv[], int argc) { 
 	json_t *jin = json_object();
-	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c540a\", \"productKey\":\"3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1\", \"deviceSecret\":\"a1wcKZILMWO\" }]"));
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c540a\", \"deviceSecret\":\"3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1\", \"productKey\":\"a1wcKZILMWO\" }]"));
 
 	char *sin = json_dumps(jin, 0);
 	if (sin != NULL) {
@@ -266,11 +272,25 @@ void do_cmd_add(char *argv[], int argc) {
 	}
 
 	json_decref(jin);
+
+
+	jin = json_object();
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c5415\", \"deviceSecret\":\"goXATTZ7X9QoOxzFdAMbtjurKnqugvOs\", \"productKey\":\"a1wcKZILMWO\" }]"));
+
+	sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		gateway_add_subdev(NULL, sin, buf, sizeof(buf), product_get_gw());
+		free(sin);
+	}
+
+	json_decref(jin);
+
 }
 
 void do_cmd_del(char *argv[], int argc) {
 	json_t *jin = json_object();
-	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c540a\", \"productKey\":\"3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1\", \"deviceSecret\":\"a1wcKZILMWO\" }]"));
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c540a\", \"deviceSecret\":\"3X1jZmnSKx1Dej9RQvLVtywP1SPe6Xk1\", \"productKey\":\"a1wcKZILMWO\"  }]"));
 
 	char *sin = json_dumps(jin, 0);
 	if (sin != NULL) {
@@ -279,6 +299,19 @@ void do_cmd_del(char *argv[], int argc) {
 		free(sin);
 	}
 
+	json_decref(jin);
+
+
+
+	jin = json_object();
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c5415\",\"deviceSecret\":\"goXATTZ7X9QoOxzFdAMbtjurKnqugvOs\", \"productKey\":\"a1wcKZILMWO\" }]"));
+
+	sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		gateway_del_subdev(NULL, sin, buf, sizeof(buf), product_get_gw());
+		free(sin);
+	}
 	json_decref(jin);
 }
 void do_cmd_glist(char *argv[], int argc) {
@@ -419,3 +452,25 @@ void do_cmd_onekey(char *argv[], int argc) {
 	json_decref(jin);
 }
 
+
+void do_cmd_viewpass(char *argv[], int argc) {
+	if (argc != 2) {
+		log_warn("error arg: viewpass <mac: 00158d00026c2530>");
+		return;
+	}
+
+	char *macstr = argv[1];
+
+	stSubDev_t *sd = product_sub_search_by_name(macstr);
+	if (sd == NULL) {
+		log_warn("no such subdev");
+		return;
+	}
+
+	product_sub_lock_view_pass(sd);
+}
+
+
+void do_cmd_reset(char *argv[], int argc) {
+	afly_reset();
+}

@@ -37,7 +37,9 @@
 	20. 支持量产功能及静态增加Key&Secert功能 [ok]
 	21. OTA
 	22. Cloud OTA Get获取
-	23. Flash读取问题
+	23. Flash读取问题 [ok]
+	24. 网关恢复出场设置处理
+	25. 二维码扫描流程
 
 	
 # Version:  

@@ -787,8 +787,8 @@ int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 	int flag = 0;
 	json_array_foreach(jlist, i, jv) {
 		const char *name = json_get_string(jv, "deviceName");
-		const char *key  = json_get_string(jv, "deviceSecret");
-		const char *sec  = json_get_string(jv, "productKey");
+		const char *sec = json_get_string(jv, "deviceSecret");
+		const char *key  = json_get_string(jv, "productKey");
 		if (name == NULL || key == NULL || sec == NULL) {
 			continue;
 		}
@@ -857,8 +857,8 @@ int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 	int flag = 0;
 	json_array_foreach(jlist, i, jv) {
 		const char *name = json_get_string(jv, "deviceName");
-		const char *key  = json_get_string(jv, "deviceSecret");
-		const char *sec  = json_get_string(jv, "productKey");
+		const char *sec  = json_get_string(jv, "deviceSecret");
+		const char *key  = json_get_string(jv, "productKey");
 		if (name == NULL || key == NULL || sec == NULL) {
 			continue;
 		}
@@ -1667,13 +1667,23 @@ void afly_nxp_unreg(const char *name) {
 	}
 	log_info("unregister ret %d", ret);
 
+
+
+
+#if 0
 	product_sub_empty(sd);
 	ret = product_sub_save(sd, 0, sizeof(*sd));
 	if (ret != 0) {
 		log_warn("product_sub_save failed: %d", ret);
 	} 
+#else
+	ret = product_sub_del(sd->deviceName);
+	if (ret != 0) {
+		log_warn("product_sub_del failed: %d", ret);
+	}
+#endif
 
-	log_info("delete subdev : %s ok", name);
+	log_info("delete subdev : %s -> ret:%d", name, ret);
 }
 
 void	afly_nxp_upt_online(const char *name, int online, const char *type, int battery, 
@@ -2044,5 +2054,11 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 		free(sje);
 		json_decref(je);
 	}
+}
+
+void afly_reset() {
+	stGateway_t *gw = product_get_gw();
+	int ret = linkkit_gateway_reset(gw->lk_dev);
+	log_info("afly reset ret:%d", ret);
 }
 

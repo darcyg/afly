@@ -63,6 +63,8 @@ void	afly_z3_rpt_attrs(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char e
 void	afly_z3_rpt_event(unsigned char ieee_addr[IEEE_ADDR_BYTES], unsigned char endpoint_id, const char *event_name, const char *event_args);
 
 
+void afly_reset();
+
 enum {
 	EVENT_NXP_NONE					= 0x00,
 	EVENT_NXP_REBOOT				= 0x01,

@@ -124,6 +124,8 @@ stSubDev_t *product_sub_search_by_product_key(const char *key);
 
 void product_sub_view();
 
+void product_sub_lock_view_pass(stSubDev_t *sd);
+
 
 int product_valid_password_string(const char *s);
 

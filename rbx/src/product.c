@@ -5,6 +5,7 @@
 #include "log.h"
 
 static stGateway_t gw = {
+#if 1
 	.ZB_Band = 2,
 	.ZB_Channel = 11,
 	.ZB_CO_MAC = "00158d0000******",
@@ -18,10 +19,12 @@ static stGateway_t gw = {
 
 	.hal_config_dir = "/etc/config/dusun/afly/linkkit.hal",
 	.product_key = "a16jEJYhBrU",
-	.device_name = "dyxTestGateway",
-	.device_secret = "2BQQ2LHBbV8TbVRJrhwtVMpc8JsXD2Dv",
 	.product_secret = "a1q89CnOyZM",
 	.id = "238709",	
+	.device_name = "dyxTestGateway",
+	.device_secret = "2BQQ2LHBbV8TbVRJrhwtVMpc8JsXD2Dv",
+#else
+#endif
 };
 
 int product_init(const char *netfile) {
