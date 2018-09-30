@@ -46,9 +46,15 @@ static stSubDev_t subdevs[MAX_SUB_DEV] = {
 };
 
 static stSubProductKeys_t spks[] = {
+	/*
 	{"a1wcKZILMWO", "0009", "1203"},
 	{"a1wcKZILMWO", "0066", "1203"},
 	{"a1wcKZILMWO", "0008", "1203"},
+	*/
+
+	{"a1pqkio7cMk", "0009", "1203"},
+	{"a1pqkio7cMk", "0066", "1203"},
+	{"a1pqkio7cMk", "0008", "1203"},
 };
 
 //////////////////////////////////////////////////////////////

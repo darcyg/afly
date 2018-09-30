@@ -55,7 +55,7 @@ static stAflyService_t svrs[] = {
 	{ "GW",		"1000", "AddSubDev",	gateway_add_subdev  },
 	{ "GW",		"1000", "DelSubDev",	gateway_del_subdev  },
 	{ "GW",		"1000", "ClrSubDev",	gateway_clr_subdev  },
-	{	"Gw",		"1000",	"RemoteBack", gateway_remote_back },
+	{	"GW",		"1000",	"RemoteBack", gateway_remote_back },
 
 	{ "NXP",	"1203", "OneKeyOpen",	subdev_one_key_open },
 	{ "NXP",	"1203", "AddKey",			subdev_add_key },
@@ -249,7 +249,8 @@ int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	int Start = -1;			json_get_int(jin, "Start", &Start);
 	int End = -1;				json_get_int(jin, "End", &End);
 
-	if (LockType != 2 && LockType != 5) {
+	//if (LockType != 2 && LockType != 5) {
+	if (LockType != 2) {
 		log_warn("now only support pass type!");
 		json_decref(jin);
 		return -2;
@@ -266,16 +267,19 @@ int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 		return -4;
 	}
 
-	if (LockType == 5) {
-		int cnt = 0;
-		int passId = 0;
-		int ret = sscanf(KeyStr, "%d,%d", &passId, &cnt);
-		if (ret != 2) {
-			json_decref(jin);
-			log_warn("error format for dynamic param");
-			return -5;
-		}
+	//if (LockType == 5) {
+	int cnt = 0;
+	int passId = 0;
+	int ret = sscanf(KeyStr, "%d,%d", &passId, &cnt);
+	if (ret == 0) {
+		json_decref(jin);
+		log_warn("error format for dynamic param");
+		return -5;
 	}
+	int pass_sub_type = ret == 1 ? 0 : 5;
+	//}
+
+	log_info("pass_sub_type: %d, cnt:%d, passId:%d", pass_sub_type, cnt, passId);
 
 	if (Start == -1) {
 		Start = time(NULL);
@@ -293,10 +297,12 @@ int subdev_add_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 		return -6;
 	}
 
-	if (LockType == 2) {
+	//if (LockType == 2) {
+	if (pass_sub_type == 0) {
 		int passId = atoi(KeyStr);
 		nxp_lock_add_pass(sd->deviceName, key->id, 0, 0, Start, End, (char *)&passId, 4);
-	} else if (LockType == 5) {
+	//} else if (LockType == 5) {
+	} else if (pass_sub_type == 5) {
 		int passId = 0;
 		int cnt = 0;
 		sscanf(KeyStr, "%d,%d", &passId, &cnt);
@@ -327,7 +333,8 @@ int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
 	const char *KeyID = json_get_string(jin, "KeyID");
 
-	if (LockType != 2 && LockType != 5) {
+	//if (LockType != 2 && LockType != 5) {
+	if (LockType != 2) {
 		json_decref(jin);
 		log_warn("now only support pass type!");
 		return -2;
@@ -356,9 +363,12 @@ int subdev_del_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 	
 	if (LockType == 2) {
 		nxp_lock_del_pass(sd->deviceName, key->id, 0);
-	} else if (LockType == 5) {
+	} 
+	/*
+	else if (LockType == 5) {
 		nxp_lock_del_pass(sd->deviceName, key->id, 5);
 	}
+	*/
 	
 	json_decref(jin);
 	return 0;
@@ -380,7 +390,8 @@ int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 
 	int LockType = -1;	json_get_int(jin, "LockType", &LockType);
 
-	if (LockType != 2 && LockType != 5) {
+	//if (LockType != 2 && LockType != 5) {
+	if (LockType != 2) {
 		json_decref(jin);
 		log_warn("now only support pass type!");
 		return -2;
@@ -388,9 +399,12 @@ int subdev_clr_key(void *arg, char *in, char *out, int out_len, void *ctx) {
 
 	if (LockType == 2) {
 		nxp_lock_clr_pass(sd->deviceName, 0);
-	} else if (LockType == 5) {
+	}
+	/*
+  else if (LockType == 5) {
 		nxp_lock_clr_pass(sd->deviceName, 5);
 	}
+	*/
 
 	json_decref(jin);
 	return 0;
@@ -1848,7 +1862,8 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 				} else if (passType == 21) { // 指纹
 					type = 1;
 				} else if (passType == 5) { // 次数
-					type = 5;
+					//type = 5;
+					type = 2;
 				} else if (passType == 1) { // 动态
 					type = 6;
 				}else {
@@ -1909,7 +1924,8 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 				} else if (passId >= 1000000 && passId < 2000000) { // 指纹
 					type = 1;
 				} else if (passId >= 5000000 && passId < 6000000) { // 指纹
-					type = 5;
+					//type = 5;
+					type = 2;
 				} else if (passId != 0 && passId != 999999 && passId != 888888){ // 999999 dynamic, 888888 onekey, 0 clr key
 					log_warn("not support check record type!");
 					return;

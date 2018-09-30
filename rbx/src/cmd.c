@@ -34,6 +34,7 @@ void do_cmd_del(char *argv[], int argc);
 void do_cmd_glist(char *argv[], int argc);
 void do_cmd_clr(char *argv[], int argc);
 void do_cmd_dynamic(char *argv[], int argc);
+void do_cmd_xdel(char *argv[], int argc);
 
 void do_cmd_addpass(char *argv[], int argc);
 void do_cmd_delpass(char *argv[], int argc);
@@ -48,6 +49,7 @@ static stCmd_t cmds[] = {
 
 	{"add",			do_cmd_add,			"add sub dev config"},
 	{"del",			do_cmd_del,			"del sub dev config"},
+	{"xdel",		do_cmd_xdel,		"del sub dev"},
 	{"glist",		do_cmd_glist,		"post sub dev list"},
 	{"clr",			do_cmd_clr,			"clr sub dev"},
 	{"back",		do_cmd_back,		"remote back gateway"},
@@ -286,6 +288,19 @@ void do_cmd_add(char *argv[], int argc) {
 
 	json_decref(jin);
 
+	jin = json_object();
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c5397\", \"deviceSecret\":\"LPxWnYwHejFFSXivlmg2FOmsWCfJDa5v\", \"productKey\":\"a1pqkio7cMk\" }]"));
+
+	sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		gateway_add_subdev(NULL, sin, buf, sizeof(buf), product_get_gw());
+		free(sin);
+	}
+
+	json_decref(jin);
+
+
 }
 
 void do_cmd_del(char *argv[], int argc) {
@@ -313,6 +328,18 @@ void do_cmd_del(char *argv[], int argc) {
 		free(sin);
 	}
 	json_decref(jin);
+
+	jin = json_object();
+	json_object_set_new(jin, "SubDevList", json_string("[{\"deviceName\":\"00158d00026c5397\",\"deviceSecret\":\"LPxWnYwHejFFSXivlmg2FOmsWCfJDa5v\", \"productKey\":\"a1pqkio7cMk\" }]"));
+
+	sin = json_dumps(jin, 0);
+	if (sin != NULL) {
+		char buf[2048];
+		gateway_del_subdev(NULL, sin, buf, sizeof(buf), product_get_gw());
+		free(sin);
+	}
+	json_decref(jin);
+
 }
 void do_cmd_glist(char *argv[], int argc) {
 	log_warn("not support now !");
@@ -453,6 +480,25 @@ void do_cmd_onekey(char *argv[], int argc) {
 }
 
 
+void do_cmd_xdel(char *argv[], int argc) {
+	if (argc != 2) {
+		log_warn("error arg: xdel <mac: 00158d00026c2530>");
+		return;
+	}
+
+	char *macstr = argv[1];
+
+	stSubDev_t *sd = product_sub_search_by_name(macstr);
+	if (sd == NULL) {
+		log_warn("no such subdev");
+		return;
+	}
+
+	nxp_del_device(sd->type, sd->deviceName);
+	product_sub_del(sd->deviceName);
+}
+
+
 void do_cmd_viewpass(char *argv[], int argc) {
 	if (argc != 2) {
 		log_warn("error arg: viewpass <mac: 00158d00026c2530>");
@@ -474,3 +520,4 @@ void do_cmd_viewpass(char *argv[], int argc) {
 void do_cmd_reset(char *argv[], int argc) {
 	afly_reset();
 }
+
