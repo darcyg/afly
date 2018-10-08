@@ -803,24 +803,30 @@ int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 		const char *name = json_get_string(jv, "deviceName");
 		const char *sec = json_get_string(jv, "deviceSecret");
 		const char *key  = json_get_string(jv, "productKey");
-		if (name == NULL || key == NULL || sec == NULL) {
-			continue;
+
+		if (name != NULL && key == NULL && sec == NULL) {
+			log_info("Permit Add Sub Dev : %s", name);
+			nxp_add_device("1203", name);
+		} else {
+			if (name == NULL || key == NULL || sec == NULL) {
+				continue;
+			}
+
+			stSubDev_t *sd = product_sub_search_by_name(name);
+			if (sd != NULL) {
+				log_warn("Exsit Dev : %s", name);
+				continue;
+			}
+
+			int ret = product_sub_add(name, key, sec);
+			if (ret != 0) {
+				log_warn("Add Sub Dev name(%s), key(%s), sec(%s) failed, ret:%d", name, key, sec, ret);
+				continue;
+			} 
+
+			log_info("Add Sub Dev name(%s), key(%s), sec(%s) ok", name, key, sec);
+			flag ++;
 		}
-
-		stSubDev_t *sd = product_sub_search_by_name(name);
-		if (sd != NULL) {
-			log_warn("Exsit Dev : %s", name);
-			continue;
-		}
-
-		int ret = product_sub_add(name, key, sec);
-		if (ret != 0) {
-			log_warn("Add Sub Dev name(%s), key(%s), sec(%s) failed, ret:%d", name, key, sec, ret);
-			continue;
-		} 
-
-		log_warn("Add Sub Dev name(%s), key(%s), sec(%s) ok", name, key, sec);
-		flag ++;
 	}
 	
 	if (flag) {
@@ -873,33 +879,37 @@ int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 		const char *name = json_get_string(jv, "deviceName");
 		const char *sec  = json_get_string(jv, "deviceSecret");
 		const char *key  = json_get_string(jv, "productKey");
-		if (name == NULL || key == NULL || sec == NULL) {
-			continue;
+
+		if (name != NULL && key == NULL && sec == NULL) {
+			log_info("Remove Sub Dev : %s", name);
+			nxp_del_device("1203", name);
+		} else {
+			if (name == NULL || key == NULL || sec == NULL) {
+				continue;
+			}
+
+			stSubDev_t *sd = product_sub_search_by_name(name);
+			if (sd == NULL) {
+				log_warn("Not Exsit Dev : %s", name);
+				continue;
+			}
+
+			int ret = product_sub_del(name);
+			if (ret != 0) {
+				log_warn("Del Sub Dev name(%s) failed, ret:%d", name, ret);
+				continue;
+			} 
+
+			log_info("Del Sub Dev name(%s) ok", name);
+
+			flag++;
 		}
-
-		stSubDev_t *sd = product_sub_search_by_name(name);
-		if (sd == NULL) {
-			log_warn("Not Exsit Dev : %s", name);
-			continue;
-		}
-
-		int ret = product_sub_del(name);
-		if (ret != 0) {
-			log_warn("Del Sub Dev name(%s) failed, ret:%d", name, ret);
-			continue;
-		} 
-
-		log_info("Del Sub Dev name(%s) ok", name);
-		
-		flag++;
 	}
 
 	if (flag) {
 		//nxp_get_list();
 		gateway_post_subdev_list();
 	}
-
-
 
 	json_decref(jin);
 
@@ -1274,6 +1284,7 @@ static int event_handler(linkkit_event_t *ev, void *ctx) {
 				}
 
 				log_info("permit subdev %s in %d seconds\n", productKey, timeoutSec);
+				/* TODO 
 				stSubDev_t *sd = product_sub_search_by_product_key(productKey);
 				if (sd == NULL) {
 					log_warn("no such sub device!");
@@ -1281,6 +1292,7 @@ static int event_handler(linkkit_event_t *ev, void *ctx) {
 				} 
 
 				nxp_add_device("1203", sd->deviceName);
+				*/
 			}
 			break;
 	}
