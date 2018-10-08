@@ -77,6 +77,7 @@ int product_init(const char *netfile) {
 	log_info("pan_id: %s, channel:%d", gw.ZB_PAN_ID, gw.ZB_Channel);
 	
 	
+	fclose(fp);
 	return flag;
 }
 
