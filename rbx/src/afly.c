@@ -1578,7 +1578,8 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 		
 		stSubProductKeys_t *spk = product_sub_get_product_key_by_type_or_model((char *)type, (char *)model);
 		if (spk == NULL) {	
-			log_warn("Can't find correct public key for this device!");
+			log_warn("Can't find correct public key for this device!, remove it!");
+			nxp_del_device("1203", name);
 			return;
 		}
 
