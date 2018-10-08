@@ -475,3 +475,4 @@ int HAL_UDP_sendto(_IN_ intptr_t sockfd,
 
     return (ret) > 0 ? ret : -1;
 }
+

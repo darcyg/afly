@@ -1284,15 +1284,14 @@ static int event_handler(linkkit_event_t *ev, void *ctx) {
 				}
 
 				log_info("permit subdev %s in %d seconds\n", productKey, timeoutSec);
-				/* TODO 
 				stSubDev_t *sd = product_sub_search_by_product_key(productKey);
 				if (sd == NULL) {
 					log_warn("no such sub device!");
 					break;
 				} 
 
-				nxp_add_device("1203", sd->deviceName);
-				*/
+				//nxp_add_device("1203", sd->deviceName);
+				nxp_add_device("1203", "ffffffffffffffff");
 			}
 			break;
 	}
