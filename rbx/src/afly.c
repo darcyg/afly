@@ -620,6 +620,7 @@ static int subdev_get_property(char *in, char *out, int out_len, void *ctx) {
 	stGateway_t *gw = product_get_gw();
 
 	//["LockState","WIFI_Band","WiFI_RSSI","WIFI_AP_BSSID","WIFI_Channel","WiFI_SNR","Model","Version","LinkType","BatteryPercentage"]
+	//	"LockState","LinkType","Version","Model","BatteryPercentage"
 
 	size_t  i		= 0;
 	json_t *jv	= NULL;
@@ -647,6 +648,14 @@ static int subdev_get_property(char *in, char *out, int out_len, void *ctx) {
 			json_object_set_new(jret, "WiFI_RSSI", json_integer(sd->rssi));
 		} else if (strcmp(sv, "WIFI_Channel") == 0) {
 			json_object_set_new(jret, "WIFI_Channel", json_integer(gw->ZB_Channel));
+		} else if (strcmp(sv, "LockState") == 0) {
+			json_object_set_new(jret, "LockState", json_integer(sd->aset.lock.lock_status));
+		} else if (strcmp(sv, "LinkType") == 0) {
+			json_object_set_new(jret, "LinkType", json_string(sd->app));
+		} else if (strcmp(sv, "Version") == 0) {
+			json_object_set_new(jret, "Version", json_string(sd->version));
+		} else if (strcmp(sv, "Model") == 0) {
+			json_object_set_new(jret, "Model", json_string(sd->model));
 		}
 	}
 
@@ -1579,7 +1588,7 @@ void  afly_nxp_reg(const char *name, const char *model, const char *type, const 
 		stSubProductKeys_t *spk = product_sub_get_product_key_by_type_or_model((char *)type, (char *)model);
 		if (spk == NULL) {	
 			log_warn("Can't find correct public key for this device!, remove it!");
-			nxp_del_device("1203", name);
+			nxp_del_device("1203", (char *)name);
 			return;
 		}
 
