@@ -115,7 +115,8 @@ run :
 	./build/afly
 
 scp : 
-	scp -P2204 ./build/afly root@192.168.10.230:/root
+	#scp -P2204 ./build/afly root@192.168.10.230:/root
+	scp -P2200 ./build/afly root@192.168.10.230:/root
 	#scp -P2201 ./build/afly root@192.168.10.230:/root
 	#scp -P2200 ./build/libilop-hal.so root@192.168.10.230:/usr/lib
 	#scp -P2201 ./ilop_sdk/lib/libilop-sdk.so root@192.168.10.230:/usr/lib

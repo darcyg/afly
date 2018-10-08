@@ -806,7 +806,7 @@ int gateway_add_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 
 		if (name != NULL && key == NULL && sec == NULL) {
 			log_info("Permit Add Sub Dev : %s", name);
-			nxp_add_device("1203", name);
+			nxp_add_device("1203", (char *)name);
 		} else {
 			if (name == NULL || key == NULL || sec == NULL) {
 				continue;
@@ -882,7 +882,7 @@ int gateway_del_subdev(void *arg, char *in, char *out, int out_len, void *ctx) {
 
 		if (name != NULL && key == NULL && sec == NULL) {
 			log_info("Remove Sub Dev : %s", name);
-			nxp_del_device("1203", name);
+			nxp_del_device("1203", (char *)name);
 		} else {
 			if (name == NULL || key == NULL || sec == NULL) {
 				continue;
@@ -1268,8 +1268,25 @@ static int event_handler(linkkit_event_t *ev, void *ctx) {
 					break;
 				}
 
+
 				nxp_del_device("1203", sd->deviceName);
-				
+
+				int ret = linkkit_gateway_subdev_destroy(sd->devid);
+				if (ret != 0) {
+					log_warn("linkkit_gateway_subdev_destroy failed, ret:%d(%08x), id: %d, mac:(%s)",ret,ret, sd->devid, sd->deviceName);
+				}
+				log_info("destroy ret %d", ret);
+
+				ret = linkkit_gateway_subdev_unregister(sd->productKey, sd->deviceName);
+				if (ret != 0) {
+					log_warn("linkkit_gateway_subdev_unregister failed, ret:%d(%08x), id: %d, mac:(%s)",ret,ret,sd->devid,sd->deviceName);
+				}
+				log_info("unregister ret %d", ret);
+
+				ret = product_sub_del(sd->deviceName);
+				if (ret != 0) {
+					log_warn("product_sub_del failed: %d", ret);
+				}
 			}
 			break;
 
@@ -1822,17 +1839,6 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 		return;
 	}
 
-	static const char *identifier_array[] = {
-		"none",
-		"reboot",
-		"factory_reset",
-		"check_record",
-		"add_pass_del_pass",
-		"mod_pass",
-		"damage_alarm",
-		"sys_status",
-	};
-
 	char *identifier = NULL;
 	json_t *je = NULL;
 	int timeout = 10000; //100ms
@@ -2076,6 +2082,38 @@ void afly_nxp_rpt_event(const char *name, int eid, char *buf, int len) {
 	log_info("send event %s(%s)", identifier, sje);
 	int ret = linkkit_gateway_trigger_event_json_sync(sd->devid, identifier, (char *)sje, timeout);
 	log_info("trigger_event_sync ret: %d(%08X)", ret, ret);
+	
+	if (ret == -520) { // maybe not register or login
+		char *secret = NULL;
+		if (strcmp(sd->deviceSecret, "") != 0) {
+			secret = sd->deviceSecret;
+		}
+		int ret = linkkit_gateway_subdev_register(sd->productKey, sd->deviceName, secret);
+		if (ret < 0) {
+			log_warn("linkkit gateway subdev register failed: ret(%d[%08x]) key(%s),name(%s), secret(%s)",
+					ret, ret, sd->productKey, sd->deviceName, sd->deviceSecret);
+		} else {
+			log_info("register ret %d(%08x)", ret, ret);
+
+			ret = linkkit_gateway_subdev_create(sd->productKey, sd->deviceName, &dev_cbs, sd);
+			if (ret < 0) {	
+				log_warn("linkkit gateway create subdev failed: pKey(%s), pName(%s), unregisert it...",
+						sd->productKey, sd->deviceName);
+				linkkit_gateway_subdev_unregister(sd->productKey, sd->deviceName);
+			} else {
+				log_info("create ret %d(%08x), devId -> ret -> %d", ret, ret, ret);
+				sd->devid = ret;
+
+				log_info("New Sub Dev : ieee(%s), model(%s), id(%d)", sd->deviceName, sd->model, sd->devid);
+
+				int ret = linkkit_gateway_subdev_register(sd->productKey, sd->deviceName, secret);
+				if (ret < 0) {
+					log_warn("retry linkkit gateway subdev register failed: ret(%d[%08x]) key(%s),name(%s), secret(%s)",
+							ret, ret, sd->productKey, sd->deviceName, sd->deviceSecret);
+				}
+			}
+		}
+	}
 
 	if (je != NULL) {
 		free(sje);
